@@ -13,6 +13,7 @@ from PySide6.QtGui import QColor, QFont
 from app.themes import get_theme_qss, load_custom_themes, CUSTOM_THEMES
 from app.utils import get_app_icon
 from app.autostart import set_autostart, is_autostart_enabled
+from app.update_manager import UpdateCheckerWorker, CURRENT_VERSION
 
 class ColorSelectorButton(QPushButton):
     """Helper button that opens a color picker and shows the active color."""
@@ -261,8 +262,9 @@ class SettingsWindow(QDialog):
         # Keyboard Overlay Tab
         self.chk_overlay_enabled.setChecked(c.get("overlay_enabled"))
         self.chk_overlay_unlocked.setChecked(c.get("overlay_unlocked"))
-        self.slider_opacity.setValue(int(c.get("overlay_opacity") * 100))
-        self.lbl_opacity_val.setText(f"{int(c.get('overlay_opacity') * 100)}%")
+        kb_op = max(0.1, c.get("overlay_opacity"))
+        self.slider_opacity.setValue(int(kb_op * 100))
+        self.lbl_opacity_val.setText(f"{int(kb_op * 100)}%")
         self.txt_custom_keys.setText(c.get("custom_layout_keys"))
         
         mode_idx = self.combo_mode.findData(c.get("overlay_mode"))
@@ -280,8 +282,9 @@ class SettingsWindow(QDialog):
         self.chk_mouse_show_coords.setChecked(c.get("mouse_overlay_show_coords"))
         self.chk_mouse_show_clicks.setChecked(c.get("mouse_overlay_show_clicks"))
         self.chk_mouse_unlocked.setChecked(c.get("mouse_overlay_unlocked"))
-        self.slider_mouse_opacity.setValue(int(c.get("mouse_overlay_opacity") * 100))
-        self.lbl_mouse_opacity_val.setText(f"{int(c.get('mouse_overlay_opacity') * 100)}%")
+        m_op = max(0.1, c.get("mouse_overlay_opacity"))
+        self.slider_mouse_opacity.setValue(int(m_op * 100))
+        self.lbl_mouse_opacity_val.setText(f"{int(m_op * 100)}%")
         
         # Appearance Tab
         self.combo_theme.blockSignals(True)
@@ -384,6 +387,45 @@ class SettingsWindow(QDialog):
             self.apply_settings()
             QMessageBox.information(self, "Готово", "Настройки сброшены!")
 
+    def check_for_updates_clicked(self):
+        self.btn_check_updates.setEnabled(False)
+        self.btn_check_updates.setText("Проверка...")
+        
+        self.update_checker_worker = UpdateCheckerWorker()
+        self.update_checker_worker.check_finished.connect(self.on_settings_update_checked)
+        self.update_checker_worker.check_failed.connect(self.on_settings_update_failed)
+        self.update_checker_worker.start()
+
+    def on_settings_update_checked(self, update_available, latest_version, changelog, download_url):
+        self.btn_check_updates.setEnabled(True)
+        self.btn_check_updates.setText("Проверить обновления")
+        
+        if update_available:
+            self.latest_version = latest_version
+            self.changelog = changelog
+            self.download_url = download_url
+            self.btn_install_update.setVisible(True)
+            self.lbl_app_version.setText(f"Версия приложения: {CURRENT_VERSION} (Доступно обновление: {latest_version}!)")
+            
+            # Automatically trigger update dialog
+            self.run_update_dialog()
+        else:
+            self.btn_install_update.setVisible(False)
+            self.lbl_app_version.setText(f"Версия приложения: {CURRENT_VERSION} (У вас последняя версия)")
+            QMessageBox.information(self, "Обновление", "У вас установлена последняя версия программы!")
+
+    def on_settings_update_failed(self, error_msg):
+        self.btn_check_updates.setEnabled(True)
+        self.btn_check_updates.setText("Проверить обновления")
+        QMessageBox.warning(self, "Ошибка обновления", f"Не удалось проверить обновления:\n{error_msg}")
+
+    def run_update_dialog(self):
+        if hasattr(self, 'latest_version') and self.download_url:
+            from app.update_dialog import UpdateDialog
+            update_dlg = UpdateDialog(self.config, self)
+            update_dlg.set_update_info(self.latest_version, self.changelog, self.download_url)
+            update_dlg.exec()
+
     # TAB UI CONSTRUCTORS
     def build_sound_tab(self):
         tab = QWidget()
@@ -473,7 +515,7 @@ class SettingsWindow(QDialog):
         op_layout = QHBoxLayout()
         op_layout.addWidget(QLabel("Прозрачность клавиатуры:"))
         self.slider_opacity = QSlider(Qt.Horizontal)
-        self.slider_opacity.setRange(0, 100)
+        self.slider_opacity.setRange(10, 100)
         self.slider_opacity.valueChanged.connect(lambda val: self.lbl_opacity_val.setText(f"{val}%"))
         self.lbl_opacity_val = QLabel("85%")
         self.lbl_opacity_val.setFixedWidth(40)
@@ -534,7 +576,7 @@ class SettingsWindow(QDialog):
         m_op_layout = QHBoxLayout()
         m_op_layout.addWidget(QLabel("Прозрачность оверлея мыши:"))
         self.slider_mouse_opacity = QSlider(Qt.Horizontal)
-        self.slider_mouse_opacity.setRange(0, 100)
+        self.slider_mouse_opacity.setRange(10, 100)
         self.slider_mouse_opacity.valueChanged.connect(lambda val: self.lbl_mouse_opacity_val.setText(f"{val}%"))
         self.lbl_mouse_opacity_val = QLabel("85%")
         self.lbl_mouse_opacity_val.setFixedWidth(40)
@@ -550,7 +592,7 @@ class SettingsWindow(QDialog):
         main_layout.addWidget(self.btn_reset_pos)
         
         main_layout.addStretch()
-        self.tabs.addTab(tab, "Overlay")
+        self.tabs.addTab(tab, "Оверлей")
 
     def build_appearance_tab(self):
         tab = QWidget()
@@ -593,6 +635,26 @@ class SettingsWindow(QDialog):
         
         layout.addWidget(grp_sys)
         
+        grp_update = QGroupBox("Обновление программы")
+        grp_update_layout = QVBoxLayout(grp_update)
+        
+        self.lbl_app_version = QLabel(f"Версия приложения: {CURRENT_VERSION}")
+        grp_update_layout.addWidget(self.lbl_app_version)
+        
+        update_btn_layout = QHBoxLayout()
+        self.btn_check_updates = QPushButton("Проверить обновления")
+        self.btn_check_updates.clicked.connect(self.check_for_updates_clicked)
+        self.btn_install_update = QPushButton("Обновить")
+        self.btn_install_update.setStyleSheet("background-color: #10B981; color: white; font-weight: bold;")
+        self.btn_install_update.setVisible(False)
+        self.btn_install_update.clicked.connect(self.run_update_dialog)
+        
+        update_btn_layout.addWidget(self.btn_check_updates)
+        update_btn_layout.addWidget(self.btn_install_update)
+        grp_update_layout.addLayout(update_btn_layout)
+        
+        layout.addWidget(grp_update)
+        
         self.btn_reset_all = QPushButton("⚠️ Сбросить настройки по умолчанию")
         self.btn_reset_all.clicked.connect(self.reset_settings)
         layout.addWidget(self.btn_reset_all)
@@ -611,7 +673,7 @@ class SettingsWindow(QDialog):
         layout.addWidget(lbl_privacy)
         
         layout.addStretch()
-        self.tabs.addTab(tab, "Система")
+        self.tabs.addTab(tab, "Настройка")
 
     # FILE BROWSING / DIALOGS
     def browse_sound_file(self):

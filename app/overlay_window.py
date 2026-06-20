@@ -57,6 +57,7 @@ class OverlayWindow(QWidget):
         self.drag_position = QPoint()
         self.key_widgets = {} # Maps key name strings to KeyCap widgets
         self.pressed_key_items = [] # History track of labels for 'pressed' mode
+        self.currently_pressed_keys = set()
         
         # Window attributes setup
         self.setWindowFlags(
@@ -92,7 +93,7 @@ class OverlayWindow(QWidget):
         elif mode == "dota":
             return (340, 170)
         elif mode == "pressed":
-            return (360, 50)
+            return (500, 60)
         elif mode == "custom":
             custom_keys_str = self.config.get("custom_layout_keys")
             keys = [k.strip().lower() for k in custom_keys_str.split(",") if k.strip()]
@@ -246,6 +247,12 @@ class OverlayWindow(QWidget):
 
     def set_key_state(self, key_name, is_pressed):
         """Triggered from keyboard hook thread signals."""
+        # Maintain currently pressed keys
+        if is_pressed:
+            self.currently_pressed_keys.add(key_name)
+        else:
+            self.currently_pressed_keys.discard(key_name)
+
         # Play Sound on Key Down
         if is_pressed and self.config.get("sound_enabled"):
             self.sound_player.play_click()
@@ -262,7 +269,82 @@ class OverlayWindow(QWidget):
             
         # Update dynamically for History/Pressed mode
         if is_pressed and self.config.get("overlay_mode") == "pressed":
-            self.add_pressed_key_history(key_name)
+            comb_str = self.get_current_combination_string(key_name)
+            self.add_pressed_key_history(comb_str)
+
+    def get_current_combination_string(self, key_name):
+        modifiers = []
+        if any(k in self.currently_pressed_keys for k in ["ctrl_l", "ctrl_r"]):
+            modifiers.append("Ctrl")
+        if any(k in self.currently_pressed_keys for k in ["shift_l", "shift_r"]):
+            modifiers.append("Shift")
+        if any(k in self.currently_pressed_keys for k in ["alt_l", "alt_r"]):
+            modifiers.append("Alt")
+        if any(k in self.currently_pressed_keys for k in ["win", "win_r"]):
+            modifiers.append("Win")
+            
+        clean_key_name = key_name.lower()
+        friendly_modifiers = {
+            "ctrl_l": "Ctrl", "ctrl_r": "Ctrl",
+            "shift_l": "Shift", "shift_r": "Shift",
+            "alt_l": "Alt", "alt_r": "Alt",
+            "win": "Win", "win_r": "Win"
+        }
+        
+        if clean_key_name in friendly_modifiers:
+            mod_label = friendly_modifiers[clean_key_name]
+            other_mods = [m for m in modifiers if m != mod_label]
+            if other_mods:
+                return " + ".join(other_mods) + f" + {mod_label}"
+            return mod_label
+            
+        key_display = self.get_log_key_display(key_name)
+        if modifiers:
+            return " + ".join(modifiers) + f" + {key_display}"
+        return key_display
+
+    def get_log_key_display(self, key_name):
+        friendly_names = {
+            "space": "Space",
+            "backspace": "Backspace",
+            "tab": "Tab",
+            "enter": "Enter",
+            "caps_lock": "Caps_Lock",
+            "esc": "Esc",
+            "up": "▲",
+            "down": "▼",
+            "left": "◀",
+            "right": "▶",
+            "ctrl_l": "Ctrl",
+            "ctrl_r": "Ctrl",
+            "shift_l": "Shift",
+            "shift_r": "Shift",
+            "alt_l": "Alt",
+            "alt_r": "Alt",
+            "win": "Win",
+            "win_r": "Win",
+            "insert": "Insert",
+            "delete": "Delete",
+            "home": "Home",
+            "end": "End",
+            "page_up": "PgUp",
+            "page_down": "PgDn"
+        }
+        
+        name_lower = key_name.lower()
+        if name_lower in friendly_names:
+            return friendly_names[name_lower]
+            
+        RU_MAP = {
+            "q": "Й", "w": "Ц", "e": "У", "r": "К", "t": "Е", "y": "Н", "u": "Г", "i": "Ш", "o": "Щ", "p": "З", "[": "Х", "]": "Ъ",
+            "a": "Ф", "s": "Ы", "d": "В", "f": "А", "g": "П", "h": "Р", "j": "О", "k": "Л", "l": "Д", ";": "Ж", "'": "Э",
+            "z": "Я", "x": "Ч", "c": "С", "v": "М", "b": "И", "n": "Т", "m": "Ь", ",": "Б", ".": "Ю", "/": "."
+        }
+        
+        if name_lower in RU_MAP:
+            return f"{name_lower.upper()} ({RU_MAP[name_lower]})"
+            
+        return key_name.upper()
 
     # LAYOUT BUILDERS
     def build_full_layout(self):
@@ -665,7 +747,7 @@ class MouseWidget(QFrame):
         self.scroll_timer = QTimer(self)
         self.scroll_timer.timeout.connect(self.reset_scroll)
         self.setObjectName("MouseWidget")
-        self.setFixedSize(80, 130)
+        self.setFixedSize(90, 150)
 
     def reset_scroll(self):
         self.scroll_indicator = 0
@@ -698,51 +780,46 @@ class MouseWidget(QFrame):
         
         # Idle colors based on active theme
         if theme == "light":
-            bg_body = QColor(220, 220, 220, 150)
+            bg_body = QColor(235, 235, 235, 180)
             border_body = QColor(180, 180, 180, 255)
             text_color = QColor(28, 28, 28)
-            idle_btn = QColor(240, 240, 240, 150)
+            idle_btn = QColor(245, 245, 245, 180)
         elif theme == "glass":
             bg_body = QColor(45, 45, 45, 120)
-            border_body = QColor(255, 255, 255, 50)
+            border_body = QColor(255, 255, 255, 60)
             text_color = QColor(255, 255, 255)
-            idle_btn = QColor(70, 70, 70, 100)
+            idle_btn = QColor(70, 70, 70, 120)
         elif theme == "neon":
-            bg_body = QColor(11, 21, 40, 100)
-            border_body = QColor(0, 85, 100, 150)
+            bg_body = QColor(11, 21, 40, 140)
+            border_body = QColor(0, 240, 255, 180)
             text_color = QColor(0, 240, 255)
-            idle_btn = QColor(20, 35, 60, 100)
+            idle_btn = QColor(20, 35, 60, 140)
             accent_color = QColor(0, 240, 255)
         else: # dark / custom
             # Try parsing custom values from register
             from app.themes import CUSTOM_THEMES
             if theme in CUSTOM_THEMES:
                 t_overlay = CUSTOM_THEMES[theme].get("overlay", {})
-                # Idle settings
                 bg_body = QColor(t_overlay.get("key_idle_bg", "#2D2D2D"))
                 border_body = QColor(t_overlay.get("key_idle_border", "#3D3D3D"))
                 text_color = QColor(t_overlay.get("key_idle_text", "#FFFFFF"))
-                idle_btn = QColor(bg_body.red(), bg_body.green(), bg_body.blue(), 100)
+                idle_btn = QColor(bg_body.red(), bg_body.green(), bg_body.blue(), 140)
                 accent_color = QColor(t_overlay.get("key_active_bg", accent_str))
             else:
-                bg_body = QColor(50, 50, 50, 180)
-                border_body = QColor(70, 70, 70, 255)
-                text_color = QColor(226, 226, 226)
-                idle_btn = QColor(60, 60, 60, 180)
+                bg_body = QColor(32, 32, 36, 180)
+                border_body = QColor(72, 72, 76, 255)
+                text_color = QColor(240, 240, 240)
+                idle_btn = QColor(48, 48, 52, 180)
 
-        # Draw Mouse Shape (Centered in widget)
-        mx, my, mw, mh = 8, 5, 64, 96
+        # Mouse body geometry (perfectly centered on width=90)
+        mx, my, mw, mh = 13, 8, 64, 100
+        cx = 45 # Center X
+        btn_height = 42
         
         # Mouse Background
         painter.setBrush(QBrush(bg_body))
         painter.setPen(QPen(border_body, 1.5))
         painter.drawRoundedRect(mx, my, mw, mh, 16, 16)
-        
-        # Split line for buttons (upper half)
-        btn_height = 42
-        painter.setPen(QPen(border_body, 1))
-        painter.drawLine(mx + mw // 2, my, mx + mw // 2, my + btn_height)
-        painter.drawLine(mx, my + btn_height, mx + mw, my + btn_height)
 
         # Highlight Left Click
         if "left" in self.pressed_buttons:
@@ -758,12 +835,22 @@ class MouseWidget(QFrame):
             painter.setBrush(QBrush(accent_color))
             painter.setPen(Qt.NoPen)
             painter.save()
-            painter.setClipRect(mx + mw // 2, my, mw // 2, btn_height)
+            painter.setClipRect(cx, my, mw // 2, btn_height)
             painter.drawRoundedRect(mx, my, mw, mh, 16, 16)
             painter.restore()
 
+        # Draw separation lines
+        painter.setPen(QPen(border_body, 1.2))
+        painter.drawLine(mx, my + btn_height, mx + mw, my + btn_height)
+        
+        # Draw scroll wheel coordinates
+        wx, wy, ww, wh = cx - 4, my + 10, 8, 20
+        
+        # Vertical split lines
+        painter.drawLine(cx, my, cx, wy)
+        painter.drawLine(cx, wy + wh, cx, my + btn_height)
+
         # Draw Scroll Wheel
-        wx, wy, ww, wh = mx + mw // 2 - 4, my + 12, 8, 18
         if "middle" in self.pressed_buttons or self.scroll_indicator != 0:
             painter.setBrush(QBrush(accent_color if "middle" in self.pressed_buttons else QColor(text_color)))
             if theme == "neon":
@@ -773,42 +860,43 @@ class MouseWidget(QFrame):
         else:
             painter.setBrush(QBrush(text_color))
             painter.setPen(Qt.NoPen)
-        painter.drawRoundedRect(wx, wy, ww, wh, 2, 2)
+        painter.drawRoundedRect(wx, wy, ww, wh, 3, 3)
         
         # Scroll wheel arrow indicator
         if self.scroll_indicator != 0:
-            painter.setPen(QPen(text_color, 1))
+            painter.setPen(QPen(text_color, 1.5))
             if self.scroll_indicator > 0: # Up arrow
-                painter.drawLine(wx + 4, wy - 4, wx + 1, wy - 1)
-                painter.drawLine(wx + 4, wy - 4, wx + 7, wy - 1)
+                painter.drawLine(cx, wy - 6, cx - 3, wy - 3)
+                painter.drawLine(cx, wy - 6, cx + 3, wy - 3)
             else: # Down arrow
-                painter.drawLine(wx + 4, wy + wh + 4, wx + 1, wy + wh + 1)
-                painter.drawLine(wx + 4, wy + wh + 4, wx + 7, wy + wh + 1)
+                painter.drawLine(cx, wy + wh + 6, cx - 3, wy + wh + 3)
+                painter.drawLine(cx, wy + wh + 6, cx + 3, wy + wh + 3)
 
         # Side Buttons (X1, X2) on the left side
+        s_width = 3
         s_height = 18
-        s_y1 = my + 50
+        s_y1 = my + 48
         s_y2 = s_y1 + 22
         
         # X1
         if "x1" in self.pressed_buttons:
             painter.setBrush(QBrush(accent_color))
             painter.setPen(Qt.NoPen)
-            painter.drawRoundedRect(mx - 3, s_y1, 4, s_height, 1, 1)
+            painter.drawRoundedRect(mx - s_width + 1, s_y1, s_width, s_height, 1.5, 1.5)
         else:
             painter.setBrush(QBrush(idle_btn))
-            painter.setPen(QPen(border_body, 0.5))
-            painter.drawRoundedRect(mx - 2, s_y1, 2, s_height, 1, 1)
+            painter.setPen(QPen(border_body, 0.8))
+            painter.drawRoundedRect(mx - s_width + 1, s_y1, s_width, s_height, 1.5, 1.5)
             
         # X2
         if "x2" in self.pressed_buttons:
             painter.setBrush(QBrush(accent_color))
             painter.setPen(Qt.NoPen)
-            painter.drawRoundedRect(mx - 3, s_y2, 4, s_height, 1, 1)
+            painter.drawRoundedRect(mx - s_width + 1, s_y2, s_width, s_height, 1.5, 1.5)
         else:
             painter.setBrush(QBrush(idle_btn))
-            painter.setPen(QPen(border_body, 0.5))
-            painter.drawRoundedRect(mx - 2, s_y2, 2, s_height, 1, 1)
+            painter.setPen(QPen(border_body, 0.8))
+            painter.drawRoundedRect(mx - s_width + 1, s_y2, s_width, s_height, 1.5, 1.5)
 
         # Draw Coordinates X / Y
         if self.config.get("mouse_overlay_show_coords"):
@@ -819,8 +907,8 @@ class MouseWidget(QFrame):
             
             x_str = f"X: {self.mouse_pos[0]}"
             y_str = f"Y: {self.mouse_pos[1]}"
-            painter.drawText(0, my + mh + 14, 80, 15, Qt.AlignCenter, x_str)
-            painter.drawText(0, my + mh + 26, 80, 15, Qt.AlignCenter, y_str)
+            painter.drawText(0, my + mh + 12, 90, 15, Qt.AlignCenter, x_str)
+            painter.drawText(0, my + mh + 26, 90, 15, Qt.AlignCenter, y_str)
 
 
 class MouseOverlayWindow(QWidget):
@@ -862,7 +950,7 @@ class MouseOverlayWindow(QWidget):
         self.fullscreen_timer.start(1000)
 
     def reload_ui(self):
-        w, h = 90, 140
+        w, h = 100, 160
         x = self.config.get("mouse_overlay_x")
         y = self.config.get("mouse_overlay_y")
         self.setGeometry(x, y, w, h)

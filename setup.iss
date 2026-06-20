@@ -3,7 +3,7 @@
 
 [Setup]
 AppName=KeySound Overlay
-AppVersion=1.1.0
+AppVersion=1.2.0
 DefaultDirName={localappdata}\Programs\KeySoundOverlay
 DefaultGroupName=KeySound Overlay
 DisableProgramGroupPage=yes
