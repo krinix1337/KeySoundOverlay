@@ -335,15 +335,27 @@ class OverlayWindow(QWidget):
         if name_lower in friendly_names:
             return friendly_names[name_lower]
             
-        RU_MAP = {
-            "q": "Й", "w": "Ц", "e": "У", "r": "К", "t": "Е", "y": "Н", "u": "Г", "i": "Ш", "o": "Щ", "p": "З", "[": "Х", "]": "Ъ",
-            "a": "Ф", "s": "Ы", "d": "В", "f": "А", "g": "П", "h": "Р", "j": "О", "k": "Л", "l": "Д", ";": "Ж", "'": "Э",
-            "z": "Я", "x": "Ч", "c": "С", "v": "М", "b": "И", "n": "Т", "m": "Ь", ",": "Б", ".": "Ю", "/": "."
-        }
-        
-        if name_lower in RU_MAP:
-            return f"{name_lower.upper()} ({RU_MAP[name_lower]})"
-            
+        # Detect active system layout language dynamically
+        is_ru = False
+        try:
+            user32 = ctypes.windll.user32
+            hwnd = user32.GetForegroundWindow()
+            thread_id = user32.GetWindowThreadProcessId(hwnd, None) if hwnd else 0
+            hkl = user32.GetKeyboardLayout(thread_id)
+            lang_id = hkl & 0xFFFF
+            is_ru = (lang_id == 0x0419) # 0x0419 is Russian LANGID
+        except Exception:
+            pass
+
+        if is_ru:
+            RU_MAP = {
+                "q": "Й", "w": "Ц", "e": "У", "r": "К", "t": "Е", "y": "Н", "u": "Г", "i": "Ш", "o": "Щ", "p": "З", "[": "Х", "]": "Ъ",
+                "a": "Ф", "s": "Ы", "d": "В", "f": "А", "g": "П", "h": "Р", "j": "О", "k": "Л", "l": "Д", ";": "Ж", "'": "Э",
+                "z": "Я", "x": "Ч", "c": "С", "v": "М", "b": "И", "n": "Т", "m": "Ь", ",": "Б", ".": "Ю", "/": "."
+            }
+            if name_lower in RU_MAP:
+                return RU_MAP[name_lower]
+                
         return key_name.upper()
 
     # LAYOUT BUILDERS
