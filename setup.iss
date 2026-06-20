@@ -1,9 +1,9 @@
-﻿; setup.iss
+; setup.iss
 ; Professional Inno Setup script for KeySound Overlay
 
 [Setup]
 AppName=KeySound Overlay
-AppVersion=1.0.0
+AppVersion=1.1.0
 DefaultDirName={localappdata}\Programs\KeySoundOverlay
 DefaultGroupName=KeySound Overlay
 DisableProgramGroupPage=yes

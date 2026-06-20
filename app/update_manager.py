@@ -6,7 +6,7 @@ import urllib.request
 import json
 from PySide6.QtCore import QThread, Signal
 
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "1.1.0"
 DEFAULT_GITHUB_REPO = "sashk/key-sound-overlay"  # Fallback repository path
 
 def get_github_repo():
