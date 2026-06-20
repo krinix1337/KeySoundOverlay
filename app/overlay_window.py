@@ -2,7 +2,7 @@
 import ctypes
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QGraphicsOpacityEffect
 from PySide6.QtCore import Qt, QPoint, QTimer, QPropertyAnimation
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QPainter, QFont, QPen, QBrush
 from app.themes import get_overlay_key_qss
 
 # Windows API Constants
@@ -652,6 +652,175 @@ class OverlayWindow(QWidget):
             self.config.set("overlay_x", self.x())
             self.config.set("overlay_y", self.y())
             event.accept()
+
+
+class MouseWidget(QFrame):
+    """Visualizes global mouse movement, button clicks, and scrolling."""
+    def __init__(self, config, parent=None):
+        super().__init__(parent)
+        self.config = config
+        self.mouse_pos = (0, 0)
+        self.pressed_buttons = set()
+        self.scroll_indicator = 0  # 1 for up, -1 for down, 0 for idle
+        self.scroll_timer = QTimer(self)
+        self.scroll_timer.timeout.connect(self.reset_scroll)
+        self.setObjectName("MouseWidget")
+        self.setFixedSize(80, 130)
+
+    def reset_scroll(self):
+        self.scroll_indicator = 0
+        self.update()
+
+    def set_mouse_position(self, x, y):
+        self.mouse_pos = (x, y)
+        if self.config.get("mouse_overlay_show_coords"):
+            self.update()
+
+    def set_button_state(self, button_name, is_pressed):
+        if is_pressed:
+            self.pressed_buttons.add(button_name)
+        else:
+            self.pressed_buttons.discard(button_name)
+        self.update()
+
+    def set_scroll(self, direction):
+        self.scroll_indicator = direction
+        self.update()
+        self.scroll_timer.start(150) # Reset highlighting after 150ms
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        theme = self.config.get("theme").lower()
+        accent_str = self.config.get("key_highlight_color")
+        accent_color = QColor(accent_str)
+        
+        # Idle colors based on active theme
+        if theme == "light":
+            bg_body = QColor(220, 220, 220, 150)
+            border_body = QColor(180, 180, 180, 255)
+            text_color = QColor(28, 28, 28)
+            idle_btn = QColor(240, 240, 240, 150)
+        elif theme == "glass":
+            bg_body = QColor(45, 45, 45, 120)
+            border_body = QColor(255, 255, 255, 50)
+            text_color = QColor(255, 255, 255)
+            idle_btn = QColor(70, 70, 70, 100)
+        elif theme == "neon":
+            bg_body = QColor(11, 21, 40, 100)
+            border_body = QColor(0, 85, 100, 150)
+            text_color = QColor(0, 240, 255)
+            idle_btn = QColor(20, 35, 60, 100)
+            accent_color = QColor(0, 240, 255)
+        else: # dark / custom
+            # Try parsing custom values from register
+            from app.themes import CUSTOM_THEMES
+            if theme in CUSTOM_THEMES:
+                t_overlay = CUSTOM_THEMES[theme].get("overlay", {})
+                # Idle settings
+                bg_body = QColor(t_overlay.get("key_idle_bg", "#2D2D2D"))
+                border_body = QColor(t_overlay.get("key_idle_border", "#3D3D3D"))
+                text_color = QColor(t_overlay.get("key_idle_text", "#FFFFFF"))
+                idle_btn = QColor(bg_body.red(), bg_body.green(), bg_body.blue(), 100)
+                accent_color = QColor(t_overlay.get("key_active_bg", accent_str))
+            else:
+                bg_body = QColor(50, 50, 50, 180)
+                border_body = QColor(70, 70, 70, 255)
+                text_color = QColor(226, 226, 226)
+                idle_btn = QColor(60, 60, 60, 180)
+
+        # Draw Mouse Shape (Centered in widget)
+        mx, my, mw, mh = 8, 5, 64, 96
+        
+        # Mouse Background
+        painter.setBrush(QBrush(bg_body))
+        painter.setPen(QPen(border_body, 1.5))
+        painter.drawRoundedRect(mx, my, mw, mh, 16, 16)
+        
+        # Split line for buttons (upper half)
+        btn_height = 42
+        painter.setPen(QPen(border_body, 1))
+        painter.drawLine(mx + mw // 2, my, mx + mw // 2, my + btn_height)
+        painter.drawLine(mx, my + btn_height, mx + mw, my + btn_height)
+
+        # Highlight Left Click
+        if "left" in self.pressed_buttons:
+            painter.setBrush(QBrush(accent_color))
+            painter.setPen(Qt.NoPen)
+            painter.save()
+            painter.setClipRect(mx, my, mw // 2, btn_height)
+            painter.drawRoundedRect(mx, my, mw, mh, 16, 16)
+            painter.restore()
+
+        # Highlight Right Click
+        if "right" in self.pressed_buttons:
+            painter.setBrush(QBrush(accent_color))
+            painter.setPen(Qt.NoPen)
+            painter.save()
+            painter.setClipRect(mx + mw // 2, my, mw // 2, btn_height)
+            painter.drawRoundedRect(mx, my, mw, mh, 16, 16)
+            painter.restore()
+
+        # Draw Scroll Wheel
+        wx, wy, ww, wh = mx + mw // 2 - 4, my + 12, 8, 18
+        if "middle" in self.pressed_buttons or self.scroll_indicator != 0:
+            painter.setBrush(QBrush(accent_color if "middle" in self.pressed_buttons else QColor(text_color)))
+            if theme == "neon":
+                painter.setPen(QPen(QColor(0, 240, 255), 1))
+            else:
+                painter.setPen(Qt.NoPen)
+        else:
+            painter.setBrush(QBrush(text_color))
+            painter.setPen(Qt.NoPen)
+        painter.drawRoundedRect(wx, wy, ww, wh, 2, 2)
+        
+        # Scroll wheel arrow indicator
+        if self.scroll_indicator != 0:
+            painter.setPen(QPen(text_color, 1))
+            if self.scroll_indicator > 0: # Up arrow
+                painter.drawLine(wx + 4, wy - 4, wx + 1, wy - 1)
+                painter.drawLine(wx + 4, wy - 4, wx + 7, wy - 1)
+            else: # Down arrow
+                painter.drawLine(wx + 4, wy + wh + 4, wx + 1, wy + wh + 1)
+                painter.drawLine(wx + 4, wy + wh + 4, wx + 7, wy + wh + 1)
+
+        # Side Buttons (X1, X2) on the left side
+        s_height = 18
+        s_y1 = my + 50
+        s_y2 = s_y1 + 22
+        
+        # X1
+        if "x1" in self.pressed_buttons:
+            painter.setBrush(QBrush(accent_color))
+            painter.setPen(Qt.NoPen)
+            painter.drawRoundedRect(mx - 3, s_y1, 4, s_height, 1, 1)
+        else:
+            painter.setBrush(QBrush(idle_btn))
+            painter.setPen(QPen(border_body, 0.5))
+            painter.drawRoundedRect(mx - 2, s_y1, 2, s_height, 1, 1)
+            
+        # X2
+        if "x2" in self.pressed_buttons:
+            painter.setBrush(QBrush(accent_color))
+            painter.setPen(Qt.NoPen)
+            painter.drawRoundedRect(mx - 3, s_y2, 4, s_height, 1, 1)
+        else:
+            painter.setBrush(QBrush(idle_btn))
+            painter.setPen(QPen(border_body, 0.5))
+            painter.drawRoundedRect(mx - 2, s_y2, 2, s_height, 1, 1)
+
+        # Draw Coordinates X / Y
+        if self.config.get("mouse_overlay_show_coords"):
+            painter.setPen(QPen(text_color))
+            font = QFont("Segoe UI", 9)
+            font.setBold(True)
+            painter.setFont(font)
+            
+            x_str = f"X: {self.mouse_pos[0]}"
+            y_str = f"Y: {self.mouse_pos[1]}"
+            painter.drawText(0, my + mh + 14, 80, 15, Qt.AlignCenter, x_str)
+            painter.drawText(0, my + mh + 26, 80, 15, Qt.AlignCenter, y_str)
 
 
 class MouseOverlayWindow(QWidget):
