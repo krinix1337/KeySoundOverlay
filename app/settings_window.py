@@ -2,18 +2,19 @@
 import os
 import json
 import re
-from PySide6.QtWidgets import (
+from PySide6.QtWidgets import ( QGraphicsOpacityEffect,
     QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget,
     QCheckBox, QLabel, QSlider, QPushButton, QComboBox,
     QFileDialog, QGroupBox, QLineEdit, QMessageBox, QColorDialog,
     QScrollArea, QFrame, QInputDialog, QListWidget, QListWidgetItem,
     QSizePolicy, QSpacerItem
 )
-from PySide6.QtCore import Qt, Signal, QSize
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, Signal, QSize
 from PySide6.QtGui import QColor, QFont, QIcon, QPixmap, QPainter
 
 from app.themes import get_theme_qss, load_custom_themes, CUSTOM_THEMES
 from app.utils import get_app_icon
+from app.icons import get_icon
 from app.autostart import set_autostart, is_autostart_enabled
 from app.update_manager import UpdateCheckerWorker, CURRENT_VERSION
 from app.profiles import ProfileManager
@@ -47,9 +48,11 @@ class ColorSelectorButton(QPushButton):
 
 class SidebarButton(QPushButton):
     """Navigation button for the sidebar."""
-    def __init__(self, emoji, text, parent=None):
+    def __init__(self, icon_name, text, parent=None):
         super().__init__(parent)
-        self.setText(f"  {emoji}   {text}")
+        self.setText(f" {text}")
+        self.setIcon(get_icon(icon_name, color="#AAAAAA", size=24))
+        self.setIconSize(QSize(20, 20))
         self.setCheckable(True)
         self.setFixedHeight(44)
         self.setStyleSheet("""
@@ -273,6 +276,7 @@ class SettingsWindow(QDialog):
         self.setWindowIcon(get_app_icon())
         self.resize(720, 580)
         self.setMinimumSize(640, 500)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowContextHelpButtonHint
             | Qt.WindowCloseButtonHint
@@ -306,11 +310,11 @@ class SettingsWindow(QDialog):
         sb_layout.addWidget(logo_lbl)
 
         nav_items = [
-            ("🔊", "Звук"),
-            ("⌨️", "Оверлей"),
-            ("🎨", "Внешний вид"),
-            ("👤", "Профили"),
-            ("⚙️", "Система"),
+            ("sound", "Звук"),
+            ("keyboard", "Оверлей"),
+            ("palette", "Внешний вид"),
+            ("profile", "Профили"),
+            ("settings", "Система"),
         ]
         self.nav_buttons = []
         for emoji, text in nav_items:
@@ -358,7 +362,8 @@ class SettingsWindow(QDialog):
 
         self.btn_apply = QPushButton("Применить")
         self.btn_apply.clicked.connect(self.apply_settings)
-        self.btn_save = QPushButton("✔  Сохранить и закрыть")
+        self.btn_save = QPushButton("Сохранить и закрыть")
+        self.btn_save.setIcon(get_icon("check", color="#FFFFFF"))
         self.btn_save.setDefault(True)
         self.btn_save.clicked.connect(self.save_and_close)
         self.btn_save.setStyleSheet(
@@ -385,9 +390,21 @@ class SettingsWindow(QDialog):
         return lambda: self._switch_page(idx)
 
     def _switch_page(self, idx):
+        if self.stack.currentIndex() == idx:
+            return
         for i, btn in enumerate(self.nav_buttons):
             btn.setChecked(i == idx)
+        
+        # Fade animation
+        self.effect = QGraphicsOpacityEffect(self.stack)
+        self.stack.setGraphicsEffect(self.effect)
+        self.anim = QPropertyAnimation(self.effect, b"opacity")
+        self.anim.setDuration(150)
+        self.anim.setStartValue(0.3)
+        self.anim.setEndValue(1.0)
+        self.anim.setEasingCurve(QEasingCurve.OutCubic)
         self.stack.setCurrentIndex(idx)
+        self.anim.start()
 
     def apply_theme_styling(self):
         theme_name = self.config.get("theme")
@@ -426,7 +443,7 @@ class SettingsWindow(QDialog):
     def _build_sound_page(self):
         page, lay = self._scrollable_page()
 
-        lay.addWidget(SectionLabel("🔊  Звук клавиш"))
+        lay.addWidget(SectionLabel("Звук клавиш"))
 
         # Enable toggle
         self.chk_sound_enabled = QCheckBox("Включить воспроизведение звуков")
@@ -441,29 +458,47 @@ class SettingsWindow(QDialog):
 
         self.combo_presets = QComboBox()
         self.combo_presets.addItem("По умолчанию (встроенный клик)", "")
-        # Original presets
-        self.combo_presets.addItem("Cherry MX Blue (Кликающие)", "assets/cherry_mx_blue.wav")
-        self.combo_presets.addItem("Cherry MX Brown (Тактильные)", "assets/cherry_mx_brown.wav")
-        self.combo_presets.addItem("Cherry MX Red (Линейные)", "assets/cherry_mx_red.wav")
-        self.combo_presets.addItem("Cherry MX Black (Тяжёлые линейные)", "assets/cherry_mx_black.wav")
-        self.combo_presets.addItem("Holy Panda (Thock)", "assets/holy_panda.wav")
-        self.combo_presets.addItem("Turquoise Tealio (Глубокий clack)", "assets/turquoise_tealio.wav")
-        self.combo_presets.addItem("NovelKeys Cream (Гладкие линейные)", "assets/nk_cream.wav")
-        self.combo_presets.addItem("Cream Travel (Тихие линейные)", "assets/cream_travel.wav")
-        self.combo_presets.addItem("EG Oreo (Тактильные)", "assets/eg_oreo.wav")
-        self.combo_presets.addItem("Crystal Purple (Звонкие)", "assets/crystal_purple.wav")
-        self.combo_presets.addItem("Topre Purple Hybrid (Тихие тактильные)", "assets/topre.wav")
-        # 7 New presets
-        self.combo_presets.addItem("──────────── Новые свичи ────────────", None)
-        self.combo_presets.addItem("🟡 Gateron Yellow (Ультра-тихий линейный)", "assets/gateron_yellow.wav")
-        self.combo_presets.addItem("🟠 Alps SKCM Orange (Винтажный тактильный)", "assets/alps_skcm.wav")
-        self.combo_presets.addItem("⬜ Kailh Box White (Box-клик)", "assets/kailh_box_white.wav")
-        self.combo_presets.addItem("⚡ Speed Silver (Быстрый линейный)", "assets/speed_silver.wav")
-        self.combo_presets.addItem("🔵 Topre 45g (Глубокий thock)", "assets/topre_45g.wav")
-        self.combo_presets.addItem("🔇 Boba U4 Silent (Беззвучный)", "assets/boba_u4.wav")
-        self.combo_presets.addItem("🩷 Akko CS Jelly Pink (Тактильный)", "assets/akko_jelly_pink.wav")
-        self.combo_presets.addItem("──────────────────────────────────────", None)
+
+        # --- Cherry MX ---
+        self.combo_presets.insertSeparator(self.combo_presets.count())
+        self.combo_presets.addItem("🍒 CHERRY MX", None)
+        self.combo_presets.addItem("   Cherry MX Blue (Кликающие)", "assets/cherry_mx_blue.wav")
+        self.combo_presets.addItem("   Cherry MX Brown (Тактильные)", "assets/cherry_mx_brown.wav")
+        self.combo_presets.addItem("   Cherry MX Red (Линейные)", "assets/cherry_mx_red.wav")
+        self.combo_presets.addItem("   Cherry MX Black (Тяжёлые линейные)", "assets/cherry_mx_black.wav")
+
+        # --- Premium Switches ---
+        self.combo_presets.insertSeparator(self.combo_presets.count())
+        self.combo_presets.addItem("⭐ PREMIUM SWITCHES", None)
+        self.combo_presets.addItem("   Holy Panda (Thock)", "assets/holy_panda.wav")
+        self.combo_presets.addItem("   Turquoise Tealio (Глубокий clack)", "assets/turquoise_tealio.wav")
+        self.combo_presets.addItem("   NovelKeys Cream (Гладкие линейные)", "assets/nk_cream.wav")
+        self.combo_presets.addItem("   Cream Travel (Тихие линейные)", "assets/cream_travel.wav")
+        self.combo_presets.addItem("   EG Oreo (Тактильные)", "assets/eg_oreo.wav")
+        self.combo_presets.addItem("   Crystal Purple (Звонкие)", "assets/crystal_purple.wav")
+        self.combo_presets.addItem("   Topre Purple Hybrid (Тихие тактильные)", "assets/topre.wav")
+
+        # --- 7 New Switches (Synthesized) ---
+        self.combo_presets.insertSeparator(self.combo_presets.count())
+        self.combo_presets.addItem("✨ НОВЫЕ СВИЧИ", None)
+        self.combo_presets.addItem("   Gateron Yellow (Ультра-тихий линейный)", "assets/gateron_yellow.wav")
+        self.combo_presets.addItem("   Alps SKCM Orange (Винтажный тактильный)", "assets/alps_skcm.wav")
+        self.combo_presets.addItem("   Kailh Box White (Box-клик)", "assets/kailh_box_white.wav")
+        self.combo_presets.addItem("   Speed Silver (Быстрый линейный)", "assets/speed_silver.wav")
+        self.combo_presets.addItem("   Topre 45g (Глубокий thock)", "assets/topre_45g.wav")
+        self.combo_presets.addItem("   Boba U4 Silent (Беззвучный)", "assets/boba_u4.wav")
+        self.combo_presets.addItem("   Akko CS Jelly Pink (Тактильный)", "assets/akko_jelly_pink.wav")
+
+        self.combo_presets.insertSeparator(self.combo_presets.count())
         self.combo_presets.addItem("Другой звуковой файл...", "custom")
+        
+        # Disable category headers
+        model = self.combo_presets.model()
+        for i in range(self.combo_presets.count()):
+            if self.combo_presets.itemData(i) is None:
+                item = model.item(i)
+                if item:
+                    item.setEnabled(False)
         self.combo_presets.currentIndexChanged.connect(self.preset_changed)
         c1l.addWidget(self.combo_presets)
 
@@ -477,7 +512,8 @@ class SettingsWindow(QDialog):
         file_row.addWidget(self.btn_browse)
         c1l.addLayout(file_row)
 
-        self.btn_test = QPushButton("▶  Тест звука")
+        self.btn_test = QPushButton("Тест звука")
+        self.btn_test.setIcon(get_icon("play", color="#FFFFFF"))
         self.btn_test.clicked.connect(self.test_sound_file)
         c1l.addWidget(self.btn_test)
         lay.addWidget(card1)
@@ -503,7 +539,7 @@ class SettingsWindow(QDialog):
 
     def _build_overlay_page(self):
         page, lay = self._scrollable_page()
-        lay.addWidget(SectionLabel("⌨️  Оверлей клавиатуры"))
+        lay.addWidget(SectionLabel("Оверлей клавиатуры"))
 
         card_kb = CardFrame()
         kb_l = QVBoxLayout(card_kb)
@@ -551,19 +587,20 @@ class SettingsWindow(QDialog):
         lay.addWidget(card_kb)
 
         # Animation & fullscreen
-        lay.addWidget(SectionLabel("✨  Эффекты"))
+        lay.addWidget(SectionLabel("Эффекты"))
         card_fx = CardFrame()
         fx_l = QVBoxLayout(card_fx)
         fx_l.setContentsMargins(12, 12, 12, 12)
         fx_l.setSpacing(8)
         self.chk_key_anim = QCheckBox("Анимация нажатия клавиш (ripple-эффект)")
         self.chk_show_fullscreen = QCheckBox("Показывать оверлей поверх полноэкранных приложений")
-        fx_l.addWidget(self.chk_key_anim)
+        fx_l.addWidget(QLabel("Анимация нажатия:"))
+        fx_l.addWidget(self.combo_anim)
         fx_l.addWidget(self.chk_show_fullscreen)
         lay.addWidget(card_fx)
 
         # Mouse overlay
-        lay.addWidget(SectionLabel("🖱️  Оверлей мыши"))
+        lay.addWidget(SectionLabel("Оверлей мыши"))
         card_mouse = CardFrame()
         ml = QVBoxLayout(card_mouse)
         ml.setContentsMargins(12, 12, 12, 12)
@@ -585,7 +622,8 @@ class SettingsWindow(QDialog):
         lay.addWidget(card_mouse)
 
         # Reset positions
-        self.btn_reset_pos = QPushButton("🔄  Сбросить позиции оверлеев")
+        self.btn_reset_pos = QPushButton("Сбросить позиции оверлеев")
+        self.btn_reset_pos.setIcon(get_icon("resize", color="#FFFFFF"))
         self.btn_reset_pos.clicked.connect(self.reset_overlay_position_triggered.emit)
         lay.addWidget(self.btn_reset_pos)
 
@@ -594,7 +632,7 @@ class SettingsWindow(QDialog):
 
     def _build_appearance_page(self):
         page, lay = self._scrollable_page()
-        lay.addWidget(SectionLabel("🎨  Внешний вид"))
+        lay.addWidget(SectionLabel("Внешний вид"))
 
         card_th = CardFrame()
         th_l = QVBoxLayout(card_th)
@@ -610,7 +648,8 @@ class SettingsWindow(QDialog):
             "Создайте свою тему через кнопку ниже."
         ))
 
-        self.btn_create_theme = QPushButton("🎨  Создать кастомную тему…")
+        self.btn_create_theme = QPushButton("Создать кастомную тему…")
+        self.btn_create_theme.setIcon(get_icon("palette", color="#FFFFFF"))
         self.btn_create_theme.clicked.connect(self.open_theme_creator)
         th_l.addWidget(self.btn_create_theme)
         lay.addWidget(card_th)
@@ -620,7 +659,7 @@ class SettingsWindow(QDialog):
 
     def _build_profiles_page(self):
         page, lay = self._scrollable_page()
-        lay.addWidget(SectionLabel("👤  Профили настроек"))
+        lay.addWidget(SectionLabel("Профили настроек"))
         lay.addWidget(DescLabel(
             "Профили позволяют сохранять и переключаться между разными наборами настроек — "
             "например, для стриминга и для игры."
@@ -641,9 +680,12 @@ class SettingsWindow(QDialog):
         pl.addWidget(self.lst_profiles)
 
         btns_row = QHBoxLayout()
-        self.btn_profile_save = QPushButton("💾  Сохранить текущий")
-        self.btn_profile_load = QPushButton("📂  Загрузить")
-        self.btn_profile_delete = QPushButton("🗑️  Удалить")
+        self.btn_profile_save = QPushButton("Сохранить текущий")
+        self.btn_profile_save.setIcon(get_icon("save", color="#FFFFFF"))
+        self.btn_profile_load = QPushButton("Загрузить")
+        self.btn_profile_load.setIcon(get_icon("load", color="#FFFFFF"))
+        self.btn_profile_delete = QPushButton("Удалить")
+        self.btn_profile_delete.setIcon(get_icon("trash", color="#FFFFFF"))
         self.btn_profile_save.clicked.connect(self.save_profile)
         self.btn_profile_load.clicked.connect(self.load_profile)
         self.btn_profile_delete.clicked.connect(self.delete_profile)
@@ -658,7 +700,7 @@ class SettingsWindow(QDialog):
 
     def _build_system_page(self):
         page, lay = self._scrollable_page()
-        lay.addWidget(SectionLabel("⚙️  Система"))
+        lay.addWidget(SectionLabel("Система"))
 
         card_sys = CardFrame()
         sl = QVBoxLayout(card_sys)
@@ -672,7 +714,7 @@ class SettingsWindow(QDialog):
         sl.addWidget(self.chk_start_minimized)
         lay.addWidget(card_sys)
 
-        lay.addWidget(SectionLabel("🔄  Обновления"))
+        lay.addWidget(SectionLabel("Обновления"))
         card_upd = CardFrame()
         ul = QVBoxLayout(card_upd)
         ul.setContentsMargins(12, 12, 12, 12)
@@ -683,9 +725,11 @@ class SettingsWindow(QDialog):
         ul.addWidget(self.chk_check_startup)
 
         upd_btns = QHBoxLayout()
-        self.btn_check_updates = QPushButton("🔍  Проверить обновления")
+        self.btn_check_updates = QPushButton("Проверить обновления")
+        self.btn_check_updates.setIcon(get_icon("search", color="#FFFFFF"))
         self.btn_check_updates.clicked.connect(self.check_for_updates_clicked)
-        self.btn_install_update = QPushButton("⬆️  Установить обновление")
+        self.btn_install_update = QPushButton("Установить обновление")
+        self.btn_install_update.setIcon(get_icon("update", color="#FFFFFF"))
         self.btn_install_update.setStyleSheet(
             "background-color: #10B981; color: white; font-weight: bold;"
         )
@@ -696,7 +740,8 @@ class SettingsWindow(QDialog):
         ul.addLayout(upd_btns)
         lay.addWidget(card_upd)
 
-        self.btn_reset_all = QPushButton("⚠️  Сбросить все настройки по умолчанию")
+        self.btn_reset_all = QPushButton("Сбросить все настройки по умолчанию")
+        self.btn_reset_all.setIcon(get_icon("warning", color="#FFFFFF"))
         self.btn_reset_all.clicked.connect(self.reset_settings)
         lay.addWidget(self.btn_reset_all)
 
@@ -756,7 +801,11 @@ class SettingsWindow(QDialog):
         if color_idx >= 0:
             self.combo_color.setCurrentIndex(color_idx)
 
-        self.chk_key_anim.setChecked(c.get("key_press_animation"))
+        anim_val = c.get("key_press_animation", "ripple")
+        if anim_val is True: anim_val = "ripple"
+        if anim_val is False: anim_val = "none"
+        idx = self.combo_anim.findData(anim_val)
+        if idx >= 0: self.combo_anim.setCurrentIndex(idx)
         self.chk_show_fullscreen.setChecked(c.get("show_in_fullscreen"))
 
         # Mouse
@@ -807,7 +856,7 @@ class SettingsWindow(QDialog):
         c.set("overlay_mode", self.combo_mode.currentData())
         c.set("key_highlight_color", self.combo_color.currentData())
         c.set("custom_layout_keys", self.txt_custom_keys.text())
-        c.set("key_press_animation", self.chk_key_anim.isChecked())
+        c.set("key_press_animation", self.combo_anim.currentData())
         c.set("show_in_fullscreen", self.chk_show_fullscreen.isChecked())
 
         # Mouse Overlay
@@ -855,7 +904,8 @@ class SettingsWindow(QDialog):
         self.lst_profiles.clear()
         for name in self.profile_mgr.list_profiles():
             display = self.profile_mgr.get_display_name(name)
-            item = QListWidgetItem(f"  📄  {display}")
+            item = QListWidgetItem(f" {display}")
+            item.setIcon(get_icon("profile", color="#AAAAAA"))
             item.setData(Qt.UserRole, name)
             self.lst_profiles.addItem(item)
 
@@ -939,7 +989,7 @@ class SettingsWindow(QDialog):
 
     def check_for_updates_clicked(self):
         self.btn_check_updates.setEnabled(False)
-        self.btn_check_updates.setText("⏳  Проверка…")
+        self.btn_check_updates.setText("Проверка…")
         self.update_checker_worker = UpdateCheckerWorker()
         self.update_checker_worker.check_finished.connect(self.on_settings_update_checked)
         self.update_checker_worker.check_failed.connect(self.on_settings_update_failed)
@@ -947,7 +997,7 @@ class SettingsWindow(QDialog):
 
     def on_settings_update_checked(self, update_available, latest_version, changelog, download_url):
         self.btn_check_updates.setEnabled(True)
-        self.btn_check_updates.setText("🔍  Проверить обновления")
+        self.btn_check_updates.setText("Проверить обновления")
         if update_available:
             self.latest_version = latest_version
             self.changelog = changelog
@@ -964,7 +1014,7 @@ class SettingsWindow(QDialog):
 
     def on_settings_update_failed(self, error_msg):
         self.btn_check_updates.setEnabled(True)
-        self.btn_check_updates.setText("🔍  Проверить обновления")
+        self.btn_check_updates.setText("Проверить обновления")
         QMessageBox.warning(self, "Ошибка", f"Не удалось проверить обновления:\n{error_msg}")
 
     def run_update_dialog(self):

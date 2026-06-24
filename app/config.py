@@ -77,8 +77,8 @@ class AppConfig:
         except Exception as e:
             print(f"Error saving configuration: {e}")
 
-    def get(self, key):
-        return self.settings.get(key, DEFAULT_SETTINGS.get(key))
+    def get(self, key, default=None):
+        return self.settings.get(key, DEFAULT_SETTINGS.get(key, default))
 
     def set(self, key, value):
         self.settings[key] = value

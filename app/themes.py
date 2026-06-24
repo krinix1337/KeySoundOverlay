@@ -20,7 +20,7 @@ THEME_SETTINGS_STYLE = {
             border-radius: 8px;
             top: -1px;
         }
-        QTabBar::tab {
+        SidebarButton {
             background-color: #2D2D2D;
             border: 1px solid #3D3D3D;
             border-bottom-color: none;
@@ -30,11 +30,11 @@ THEME_SETTINGS_STYLE = {
             margin-right: 4px;
             color: #AAAAAA;
         }
-        QTabBar::tab:hover {
+        SidebarButton:hover {
             background-color: #353535;
             color: #FFFFFF;
         }
-        QTabBar::tab:selected {
+        SidebarButton:checked {
             background-color: #1F1F1F;
             border-color: #2D2D2D;
             color: #FFFFFF;
@@ -154,7 +154,7 @@ THEME_SETTINGS_STYLE = {
             border-radius: 8px;
             top: -1px;
         }
-        QTabBar::tab {
+        SidebarButton {
             background-color: #E5E5E5;
             border: 1px solid #D0D0D0;
             border-bottom-color: none;
@@ -164,11 +164,11 @@ THEME_SETTINGS_STYLE = {
             margin-right: 4px;
             color: #555555;
         }
-        QTabBar::tab:hover {
+        SidebarButton:hover {
             background-color: #ECECEC;
             color: #1C1C1C;
         }
-        QTabBar::tab:selected {
+        SidebarButton:checked {
             background-color: #FFFFFF;
             border-color: #E5E5E5;
             color: #1C1C1C;
@@ -287,7 +287,7 @@ THEME_SETTINGS_STYLE = {
             border-radius: 10px;
             top: -1px;
         }
-        QTabBar::tab {
+        SidebarButton {
             background-color: rgba(45, 45, 45, 100);
             border: 1px solid rgba(255, 255, 255, 30);
             border-bottom-color: none;
@@ -297,11 +297,11 @@ THEME_SETTINGS_STYLE = {
             margin-right: 4px;
             color: #DDDDDD;
         }
-        QTabBar::tab:hover {
+        SidebarButton:hover {
             background-color: rgba(255, 255, 255, 40);
             color: #FFFFFF;
         }
-        QTabBar::tab:selected {
+        SidebarButton:checked {
             background-color: rgba(45, 45, 45, 180);
             border-color: rgba(255, 255, 255, 50);
             color: #FFFFFF;
@@ -412,7 +412,7 @@ THEME_SETTINGS_STYLE = {
             border-radius: 8px;
             top: -1px;
         }
-        QTabBar::tab {
+        SidebarButton {
             background-color: #091122;
             border: 1px solid #004455;
             border-bottom-color: none;
@@ -422,11 +422,11 @@ THEME_SETTINGS_STYLE = {
             margin-right: 4px;
             color: #00AAFF;
         }
-        QTabBar::tab:hover {
+        SidebarButton:hover {
             background-color: #112244;
             color: #00F0FF;
         }
-        QTabBar::tab:selected {
+        SidebarButton:checked {
             background-color: #091122;
             border-color: #00F0FF;
             color: #00F0FF;
@@ -770,7 +770,7 @@ CUSTOM_SETTINGS_TEMPLATE = """
         border-radius: 8px;
         top: -1px;
     }}
-    QTabBar::tab {{
+    SidebarButton {{
         background-color: {card_bg};
         border: 1px solid {border};
         border-bottom-color: none;
@@ -780,11 +780,11 @@ CUSTOM_SETTINGS_TEMPLATE = """
         margin-right: 4px;
         color: {text_dimmed};
     }}
-    QTabBar::tab:hover {{
+    SidebarButton:hover {{
         background-color: {card_bg_hover};
         color: {text};
     }}
-    QTabBar::tab:selected {{
+    SidebarButton:checked {{
         background-color: {background};
         border-color: {border};
         color: {text};

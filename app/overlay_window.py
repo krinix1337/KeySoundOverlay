@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame,
 from PySide6.QtCore import Qt, QPoint, QTimer, QPropertyAnimation
 from PySide6.QtGui import QColor, QPainter, QFont, QPen, QBrush, QRadialGradient
 from app.themes import get_overlay_key_qss
+from app.snap_guides import SnapGuideOverlay
 
 # Windows API Constants
 GWL_EXSTYLE = -20
@@ -43,52 +44,90 @@ class KeyCap(QLabel):
         self.setAlignment(Qt.AlignCenter)
         self.setWordWrap(False)
         self.is_pressed = False
-        # Ripple animation state
-        self._ripple_radius = 0
-        self._ripple_max = 0
-        self._ripple_alpha = 0
-        self._ripple_timer = QTimer(self)
-        self._ripple_timer.setInterval(16)  # ~60 fps
-        self._ripple_timer.timeout.connect(self._step_ripple)
-        self._anim_enabled = True  # can be toggled via config
+        self._scale = 1.0
+        
+        # Anim state
+        self._anim_type = 'ripple'
+        self._anim_val1 = 0
+        self._anim_val2 = 0
+        self._anim_timer = QTimer(self)
+        self._anim_timer.setInterval(16)
+        self._anim_timer.timeout.connect(self._step_anim)
 
-    def trigger_ripple(self):
-        """Starts a ripple press animation from center."""
-        if not self._anim_enabled:
+    def trigger_anim(self):
+        if not self._anim_type or self._anim_type == 'none':
             return
-        self._ripple_radius = 0
-        self._ripple_max = max(self.width(), self.height()) * 1.2
-        self._ripple_alpha = 110
-        self._ripple_timer.start()
+            
+        if self._anim_type == 'ripple':
+            self._anim_val1 = 0
+            self._anim_val2 = max(self.width(), self.height()) * 1.2
+            self._anim_alpha = 110
+        elif self._anim_type == 'fade':
+            self._anim_alpha = 200
+        elif self._anim_type == 'bounce':
+            self._anim_val1 = 8  # bounce offset
+        self._anim_timer.start()
 
-    def _step_ripple(self):
-        self._ripple_radius += max(3, int(self._ripple_max * 0.09))
-        self._ripple_alpha = max(0, self._ripple_alpha - 9)
-        if self._ripple_radius >= self._ripple_max or self._ripple_alpha <= 0:
-            self._ripple_timer.stop()
-            self._ripple_radius = 0
-            self._ripple_alpha = 0
+    def _step_anim(self):
+        if self._anim_type == 'ripple':
+            self._anim_val1 += max(3, int(self._anim_val2 * 0.09))
+            self._anim_alpha = max(0, getattr(self, '_anim_alpha', 0) - 9)
+            if self._anim_val1 >= self._anim_val2 or self._anim_alpha <= 0:
+                self._anim_timer.stop()
+                self._anim_alpha = 0
+                self._anim_val1 = 0
+        elif self._anim_type == 'fade':
+            self._anim_alpha = max(0, getattr(self, '_anim_alpha', 0) - 15)
+            if self._anim_alpha <= 0:
+                self._anim_alpha = 0
+                self._anim_timer.stop()
+        elif self._anim_type == 'bounce':
+            self._anim_val1 -= 1
+            if self._anim_val1 <= 0:
+                self._anim_val1 = 0
+                self._anim_timer.stop()
         self.update()
 
     def paintEvent(self, event):
-        super().paintEvent(event)
-        if self._ripple_radius > 0 and self._ripple_alpha > 0:
+        if hasattr(self, '_anim_type') and self._anim_type == 'bounce' and getattr(self, '_anim_val1', 0) > 0:
             painter = QPainter(self)
-            painter.setRenderHint(QPainter.Antialiasing)
+            painter.translate(0, self._anim_val1)
+            super().paintEvent(event)
+            return
+
+        super().paintEvent(event)
+        
+        if not hasattr(self, '_anim_alpha') or self._anim_alpha <= 0:
+            return
+            
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        if self._anim_type == 'ripple':
             cx, cy = self.width() // 2, self.height() // 2
-            r = int(self._ripple_radius)
+            r = int(getattr(self, '_anim_val1', 0))
+            if r <= 0: return
             gradient = QRadialGradient(cx, cy, r)
-            gradient.setColorAt(0, QColor(255, 255, 255, self._ripple_alpha))
-            gradient.setColorAt(0.7, QColor(255, 255, 255, self._ripple_alpha // 3))
+            gradient.setColorAt(0, QColor(255, 255, 255, self._anim_alpha))
+            gradient.setColorAt(0.7, QColor(255, 255, 255, max(0, self._anim_alpha // 3)))
             gradient.setColorAt(1, QColor(255, 255, 255, 0))
             painter.setBrush(gradient)
             painter.setPen(Qt.NoPen)
             painter.drawEllipse(cx - r, cy - r, r * 2, r * 2)
+        elif self._anim_type == 'fade':
+            painter.setBrush(QColor(255, 255, 255, self._anim_alpha))
+            painter.setPen(Qt.NoPen)
+            painter.drawRect(self.rect())
 
-    def update_style(self, theme_name, highlight_color, opacity=1.0, anim_enabled=True):
+    def update_style(self, theme_name, highlight_color, opacity=1.0, anim_type='ripple'):
         """Updates styling based on current state and theme."""
-        self._anim_enabled = anim_enabled
+        if anim_type is True:
+            anim_type = 'ripple'
+        elif anim_type is False:
+            anim_type = 'none'
+        self._anim_type = anim_type
         style = get_overlay_key_qss(theme_name, highlight_color, self.is_pressed, opacity)
+        font_size = int(11 * getattr(self, "_scale", 1.0))
+        style += f"font-size: {font_size}px;"
         self.setStyleSheet(style)
 
 class OverlayWindow(QWidget):
@@ -100,6 +139,7 @@ class OverlayWindow(QWidget):
         self.key_widgets = {} # Maps key name strings to KeyCap widgets
         self.pressed_key_items = [] # History track of labels for 'pressed' mode
         self.currently_pressed_keys = set()
+        self.snap_guides = None
         
         # Window attributes setup
         self.setWindowFlags(
@@ -200,7 +240,9 @@ class OverlayWindow(QWidget):
         # Load window geometry and resize window according to layout
         x = self.config.get("overlay_x")
         y = self.config.get("overlay_y")
+        scale = self.config.get("overlay_scale", 1.0)
         w, h = self.get_layout_size()
+        w, h = int(w * scale), int(h * scale)
         self.setGeometry(x, y, w, h)
         self.setFixedSize(w, h)
         
@@ -308,10 +350,11 @@ class OverlayWindow(QWidget):
                 accent = self.config.get("key_highlight_color")
                 opacity = self.config.get("overlay_opacity")
                 anim = self.config.get("key_press_animation")
+                widget._scale = self.config.get("overlay_scale", 1.0)
                 widget.update_style(theme, accent, opacity, anim)
                 # Trigger ripple on press
-                if is_pressed and anim and hasattr(widget, 'trigger_ripple'):
-                    widget.trigger_ripple()
+                if is_pressed and anim and hasattr(widget, 'trigger_anim'):
+                    widget.trigger_anim()
 
         # Update dynamically for History/Pressed mode
         if is_pressed and self.config.get("overlay_mode") == "pressed":
@@ -406,6 +449,7 @@ class OverlayWindow(QWidget):
 
     # LAYOUT BUILDERS
     def build_full_layout(self):
+        scale = self.config.get("overlay_scale", 1.0)
         # Rows definition of standard full ANSI keyboard
         rows = [
             # Row 1 (Esc + Fs)
@@ -447,13 +491,14 @@ class OverlayWindow(QWidget):
                     row_layout.addWidget(spacer)
                 else:
                     key = KeyCap(key_id, label)
-                    key.setFixedWidth(width)
-                    key.setFixedHeight(30)
+                    key.setFixedWidth(int(width * scale))
+                    key.setFixedHeight(int(30 * scale))
                     row_layout.addWidget(key)
                     self.key_widgets[key_id] = key
             self.container_layout.addLayout(row_layout)
 
     def build_wasd_layout(self):
+        scale = self.config.get("overlay_scale", 1.0)
         # Compact, balanced and centered WASD gaming panel
         self.container_layout.setSpacing(6)
         
@@ -462,7 +507,7 @@ class OverlayWindow(QWidget):
         r1.setSpacing(6)
         r1.addStretch()
         w_key = KeyCap("w", "W")
-        w_key.setFixedSize(45, 45)
+        w_key.setFixedSize(int(45 * scale), int(45 * scale))
         r1.addWidget(w_key)
         r1.addStretch()
         self.key_widgets["w"] = w_key
@@ -471,9 +516,9 @@ class OverlayWindow(QWidget):
         r2 = QHBoxLayout()
         r2.setSpacing(6)
         r2.addStretch()
-        a_key = KeyCap("a", "A"); a_key.setFixedSize(45, 45)
-        s_key = KeyCap("s", "S"); s_key.setFixedSize(45, 45)
-        d_key = KeyCap("d", "D"); d_key.setFixedSize(45, 45)
+        a_key = KeyCap("a", "A"); a_key.setFixedSize(int(45 * scale), int(45 * scale))
+        s_key = KeyCap("s", "S"); s_key.setFixedSize(int(45 * scale), int(45 * scale))
+        d_key = KeyCap("d", "D"); d_key.setFixedSize(int(45 * scale), int(45 * scale))
         r2.addWidget(a_key)
         r2.addWidget(s_key)
         r2.addWidget(d_key)
@@ -486,9 +531,9 @@ class OverlayWindow(QWidget):
         r3 = QHBoxLayout()
         r3.setSpacing(6)
         r3.addStretch()
-        shift_key = KeyCap("shift_l", "Shift"); shift_key.setFixedSize(60, 30)
-        space_key = KeyCap("space", "Space"); space_key.setFixedSize(130, 30)
-        ctrl_key = KeyCap("ctrl_l", "Ctrl"); ctrl_key.setFixedSize(60, 30)
+        shift_key = KeyCap("shift_l", "Shift"); shift_key.setFixedSize(int(60 * scale), int(30 * scale))
+        space_key = KeyCap("space", "Space"); space_key.setFixedSize(int(130 * scale), int(30 * scale))
+        ctrl_key = KeyCap("ctrl_l", "Ctrl"); ctrl_key.setFixedSize(int(60 * scale), int(30 * scale))
         r3.addWidget(shift_key)
         r3.addWidget(space_key)
         r3.addWidget(ctrl_key)
@@ -503,6 +548,7 @@ class OverlayWindow(QWidget):
         self.container_layout.addLayout(r3)
 
     def build_osu_layout(self):
+        scale = self.config.get("overlay_scale", 1.0)
         # Compact and centered Osu! rhythm keypad layout
         self.container_layout.setSpacing(8)
         
@@ -510,7 +556,7 @@ class OverlayWindow(QWidget):
         r1 = QHBoxLayout()
         r1.addStretch()
         esc_key = KeyCap("esc", "ESC")
-        esc_key.setFixedSize(60, 30)
+        esc_key.setFixedSize(int(60 * scale), int(30 * scale))
         r1.addWidget(esc_key)
         r1.addStretch()
         self.key_widgets["esc"] = esc_key
@@ -519,8 +565,8 @@ class OverlayWindow(QWidget):
         r2 = QHBoxLayout()
         r2.setSpacing(12)
         r2.addStretch()
-        z_key = KeyCap("z", "Z"); z_key.setFixedSize(55, 55)
-        x_key = KeyCap("x", "X"); x_key.setFixedSize(55, 55)
+        z_key = KeyCap("z", "Z"); z_key.setFixedSize(int(55 * scale), int(55 * scale))
+        x_key = KeyCap("x", "X"); x_key.setFixedSize(int(55 * scale), int(55 * scale))
         r2.addWidget(z_key)
         r2.addWidget(x_key)
         r2.addStretch()
@@ -530,7 +576,7 @@ class OverlayWindow(QWidget):
         # Row 3: Space (for menu/combos)
         r3 = QHBoxLayout()
         r3.addStretch()
-        space_key = KeyCap("space", "Space"); space_key.setFixedSize(140, 30)
+        space_key = KeyCap("space", "Space"); space_key.setFixedSize(int(140 * scale), int(30 * scale))
         r3.addWidget(space_key)
         r3.addStretch()
         self.key_widgets["space"] = space_key
@@ -540,6 +586,7 @@ class OverlayWindow(QWidget):
         self.container_layout.addLayout(r3)
 
     def build_dota_layout(self):
+        scale = self.config.get("overlay_scale", 1.0)
         # Dota 2 layout: Abilities, Sub-abilities, Items, Space, Esc
         self.container_layout.setSpacing(6)
         
@@ -548,10 +595,10 @@ class OverlayWindow(QWidget):
         r1.setContentsMargins(0, 0, 0, 0)
         r1.setSpacing(6)
         r1.addStretch()
-        esc_key = KeyCap("esc", "ESC"); esc_key.setFixedSize(40, 30); r1.addWidget(esc_key)
+        esc_key = KeyCap("esc", "ESC"); esc_key.setFixedSize(int(40 * scale), int(30 * scale)); r1.addWidget(esc_key)
         r1.addWidget(QWidget()) # divider spacer
         for num in ["1", "2", "3", "4", "5", "6"]:
-            key = KeyCap(num, num); key.setFixedSize(35, 30); r1.addWidget(key)
+            key = KeyCap(num, num); key.setFixedSize(int(35 * scale), int(30 * scale)); r1.addWidget(key)
             self.key_widgets[num] = key
         self.key_widgets["esc"] = esc_key
         r1.addStretch()
@@ -561,10 +608,10 @@ class OverlayWindow(QWidget):
         r2.setContentsMargins(0, 0, 0, 0)
         r2.setSpacing(6)
         r2.addStretch()
-        tab_key = KeyCap("tab", "Tab"); tab_key.setFixedSize(45, 40); r2.addWidget(tab_key)
+        tab_key = KeyCap("tab", "Tab"); tab_key.setFixedSize(int(45 * scale), int(40 * scale)); r2.addWidget(tab_key)
         self.key_widgets["tab"] = tab_key
         for letter in ["q", "w", "e", "r", "d", "f"]:
-            key = KeyCap(letter, letter.upper()); key.setFixedSize(40, 40); r2.addWidget(key)
+            key = KeyCap(letter, letter.upper()); key.setFixedSize(int(40 * scale), int(40 * scale)); r2.addWidget(key)
             self.key_widgets[letter] = key
         r2.addStretch()
         
@@ -573,10 +620,10 @@ class OverlayWindow(QWidget):
         r3.setContentsMargins(0, 0, 0, 0)
         r3.setSpacing(6)
         r3.addStretch()
-        caps_key = KeyCap("caps_lock", "Caps"); caps_key.setFixedSize(55, 40); r3.addWidget(caps_key)
+        caps_key = KeyCap("caps_lock", "Caps"); caps_key.setFixedSize(int(55 * scale), int(40 * scale)); r3.addWidget(caps_key)
         self.key_widgets["caps_lock"] = caps_key
         for letter in ["z", "x", "c", "v", "b", "n"]:
-            key = KeyCap(letter, letter.upper()); key.setFixedSize(40, 40); r3.addWidget(key)
+            key = KeyCap(letter, letter.upper()); key.setFixedSize(int(40 * scale), int(40 * scale)); r3.addWidget(key)
             self.key_widgets[letter] = key
         r3.addStretch()
         
@@ -585,9 +632,9 @@ class OverlayWindow(QWidget):
         r4.setContentsMargins(0, 0, 0, 0)
         r4.setSpacing(6)
         r4.addStretch()
-        ctrl_key = KeyCap("ctrl_l", "Ctrl"); ctrl_key.setFixedSize(65, 30); r4.addWidget(ctrl_key)
-        alt_key = KeyCap("alt_l", "Alt"); alt_key.setFixedSize(55, 30); r4.addWidget(alt_key)
-        space_key = KeyCap("space", "Space"); space_key.setFixedSize(180, 30); r4.addWidget(space_key)
+        ctrl_key = KeyCap("ctrl_l", "Ctrl"); ctrl_key.setFixedSize(int(65 * scale), int(30 * scale)); r4.addWidget(ctrl_key)
+        alt_key = KeyCap("alt_l", "Alt"); alt_key.setFixedSize(int(55 * scale), int(30 * scale)); r4.addWidget(alt_key)
+        space_key = KeyCap("space", "Space"); space_key.setFixedSize(int(180 * scale), int(30 * scale)); r4.addWidget(space_key)
         self.key_widgets["ctrl_l"] = ctrl_key
         self.key_widgets["alt_l"] = alt_key
         self.key_widgets["space"] = space_key
@@ -599,6 +646,7 @@ class OverlayWindow(QWidget):
         self.container_layout.addLayout(r4)
 
     def build_custom_layout(self):
+        scale = self.config.get("overlay_scale", 1.0)
         # Parses list of custom keys and displays them dynamically in a beautiful wrapped grid layout
         custom_keys_str = self.config.get("custom_layout_keys")
         keys = [k.strip().lower() for k in custom_keys_str.split(",") if k.strip()]
@@ -626,8 +674,8 @@ class OverlayWindow(QWidget):
                     width = 50
                     
                 key = KeyCap(key_id, label)
-                key.setFixedWidth(width)
-                key.setFixedHeight(40) # Larger tactile keys
+                key.setFixedWidth(int(width * scale))
+                key.setFixedHeight(int(40 * scale)) # Larger tactile keys
                 row_layout.addWidget(key)
                 self.key_widgets[key_id] = key
             row_layout.addStretch()
@@ -784,20 +832,63 @@ class OverlayWindow(QWidget):
             print(f"Error in fullscreen/topmost check: {e}")
 
     # OVERLAY INTERACTION / DRAG HANDLING
+    def wheelEvent(self, event):
+        if self.config.get("overlay_unlocked"):
+            delta = event.angleDelta().y()
+            scale = self.config.get("overlay_scale", 1.0)
+            if delta > 0:
+                scale += 0.05
+            else:
+                scale -= 0.05
+            scale = max(0.5, min(3.0, scale))
+            self.config.set("overlay_scale", scale)
+            self.reload_ui()
+            event.accept()
+
     def mousePressEvent(self, event):
         if self.config.get("overlay_unlocked") and event.button() == Qt.LeftButton:
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            if not self.snap_guides:
+                self.snap_guides = SnapGuideOverlay()
+            self.snap_guides.show()
             event.accept()
 
     def mouseMoveEvent(self, event):
         if self.config.get("overlay_unlocked") and event.buttons() == Qt.LeftButton:
-            self.move(event.globalPosition().toPoint() - self.drag_position)
+            new_pos = event.globalPosition().toPoint() - self.drag_position
+            
+            # Snapping logic
+            screen = self.screen().geometry()
+            snap_dist = 25
+            
+            # Center of the overlay
+            center_x = new_pos.x() + self.width() // 2
+            center_y = new_pos.y() + self.height() // 2
+            
+            # Screen centers
+            sc_x = screen.center().x()
+            sc_y = screen.center().y()
+            
+            # Magnetize to center X
+            if abs(center_x - sc_x) < snap_dist:
+                new_pos.setX(sc_x - self.width() // 2)
+            
+            # Magnetize to center Y
+            if abs(center_y - sc_y) < snap_dist:
+                new_pos.setY(sc_y - self.height() // 2)
+                
+            self.move(new_pos)
             event.accept()
 
     def mouseReleaseEvent(self, event):
         if self.config.get("overlay_unlocked"):
             self.config.set("overlay_x", self.x())
             self.config.set("overlay_y", self.y())
+            if self.snap_guides:
+                self.snap_guides.hide()
+                self.snap_guides.deleteLater()
+                self.snap_guides = None
+            event.accept()
             event.accept()
 
 
@@ -1160,7 +1251,24 @@ class MouseOverlayWindow(QWidget):
 
     def mouseMoveEvent(self, event):
         if self.config.get("mouse_overlay_unlocked") and event.buttons() == Qt.LeftButton:
-            self.move(event.globalPosition().toPoint() - self.drag_position)
+            new_pos = event.globalPosition().toPoint() - self.drag_position
+            
+            # Snapping logic
+            screen = self.screen().geometry()
+            snap_dist = 25
+            
+            center_x = new_pos.x() + self.width() // 2
+            center_y = new_pos.y() + self.height() // 2
+            
+            sc_x = screen.center().x()
+            sc_y = screen.center().y()
+            
+            if abs(center_x - sc_x) < snap_dist:
+                new_pos.setX(sc_x - self.width() // 2)
+            if abs(center_y - sc_y) < snap_dist:
+                new_pos.setY(sc_y - self.height() // 2)
+                
+            self.move(new_pos)
             event.accept()
 
     def mouseReleaseEvent(self, event):
