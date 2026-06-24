@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.3.0-0078d4?style=for-the-badge&logo=github" alt="Version">
+  <img src="https://img.shields.io/badge/Version-1.4.0-0078d4?style=for-the-badge&logo=github" alt="Version">
   <img src="https://img.shields.io/badge/OS-Windows%2010%20%7C%2011-0078d4?style=for-the-badge&logo=windows" alt="Windows">
   <img src="https://img.shields.io/badge/Python-3.8+-3776ab?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/UI-PySide6%20%28Qt6%29-41cd52?style=for-the-badge&logo=qt&logoColor=white" alt="Qt6">
@@ -89,7 +89,7 @@
 | **Crystal Purple** | Тактильный | Звонкий яркий щелчок |
 | **Topre Purple Hybrid** | Электроёмкостный | Премиальный глухой thock |
 
-### Новые свичи (v1.3.0)
+### Новые свичи (v1.4.0)
 | Свич | Тип | Звук |
 |---|---|---|
 | 🟡 **Gateron Yellow** | Линейный | Ультра-тихий гладкий ход |

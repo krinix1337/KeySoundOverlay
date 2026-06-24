@@ -1,7 +1,7 @@
 # 🛠️ Developer Guide — KeySound Overlay
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.3.0-0078d4?style=for-the-badge&logo=github" alt="Version">
+  <img src="https://img.shields.io/badge/Version-1.4.0-0078d4?style=for-the-badge&logo=github" alt="Version">
   <img src="https://img.shields.io/badge/Python-3.8+-3776ab?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/UI-PySide6%20%28Qt6%29-41cd52?style=for-the-badge&logo=qt&logoColor=white" alt="Qt6">
 </p>
@@ -502,7 +502,7 @@ pyinstaller --noconfirm KeySoundOverlay.spec
 ```ini
 [Setup]
 AppName=KeySound Overlay
-AppVersion=1.3.0                          ; ← обновлять при каждом релизе
+AppVersion=1.4.0                          ; ← обновлять при каждом релизе
 DefaultDirName={localappdata}\Programs\KeySoundOverlay
 PrivilegesRequired=lowest                  ; без прав администратора
 Compression=lzma2/max                      ; максимальное сжатие
@@ -612,7 +612,7 @@ datas=[
 ---
 
 <p align="center">
-  <b>KeySound Overlay v1.3.0</b><br>
+  <b>KeySound Overlay v1.4.0</b><br>
   <a href="README.md">← Назад к README</a> ·
   <a href="https://github.com/krinix1337/KeySoundOverlay/issues">🐛 Сообщить о баге</a> ·
   <a href="https://github.com/krinix1337/KeySoundOverlay/releases">⬇️ Релизы</a>
