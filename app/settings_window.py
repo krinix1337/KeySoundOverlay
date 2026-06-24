@@ -2,6 +2,7 @@
 import os
 import json
 import re
+from app.components import SettingToggle
 from PySide6.QtWidgets import ( QGraphicsOpacityEffect,
     QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget,
     QCheckBox, QLabel, QSlider, QPushButton, QComboBox,
@@ -395,16 +396,7 @@ class SettingsWindow(QDialog):
         for i, btn in enumerate(self.nav_buttons):
             btn.setChecked(i == idx)
         
-        # Fade animation
-        self.effect = QGraphicsOpacityEffect(self.stack)
-        self.stack.setGraphicsEffect(self.effect)
-        self.anim = QPropertyAnimation(self.effect, b"opacity")
-        self.anim.setDuration(150)
-        self.anim.setStartValue(0.3)
-        self.anim.setEndValue(1.0)
-        self.anim.setEasingCurve(QEasingCurve.OutCubic)
         self.stack.setCurrentIndex(idx)
-        self.anim.start()
 
     def apply_theme_styling(self):
         theme_name = self.config.get("theme")
