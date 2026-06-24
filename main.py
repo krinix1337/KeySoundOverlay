@@ -112,18 +112,19 @@ def main():
     if not config.get("start_minimized"):
         settings_window.show()
         
-    # Start update checker in the background (asynchronously)
-    update_checker = UpdateCheckerWorker()
-    
-    def on_update_checked(update_available, latest_version, changelog, download_url):
-        if update_available:
-            update_dlg = UpdateDialog(config, settings_window)
-            update_dlg.set_update_info(latest_version, changelog, download_url)
-            update_dlg.exec()
-            
-    update_checker.check_finished.connect(on_update_checked)
-    update_checker.start()
-    app.update_checker = update_checker
+    # Start update checker in the background (asynchronously) if enabled
+    if config.get("check_updates_on_startup"):
+        update_checker = UpdateCheckerWorker()
+        
+        def on_update_checked(update_available, latest_version, changelog, download_url):
+            if update_available:
+                update_dlg = UpdateDialog(config, settings_window)
+                update_dlg.set_update_info(latest_version, changelog, download_url)
+                update_dlg.exec()
+                
+        update_checker.check_finished.connect(on_update_checked)
+        update_checker.start()
+        app.update_checker = update_checker
     
     try:
         # Run standard Qt event loop

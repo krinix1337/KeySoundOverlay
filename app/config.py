@@ -30,7 +30,12 @@ DEFAULT_SETTINGS = {
     "mouse_overlay_unlocked": False,
     "mouse_overlay_x": 720,
     "mouse_overlay_y": 600,
-    "mouse_overlay_opacity": 0.85
+    "mouse_overlay_opacity": 0.85,
+    
+    # Fullscreen & Updates
+    "show_in_fullscreen": False,
+    "check_updates_on_startup": True,
+    "key_press_animation": True,
 }
 
 class AppConfig:

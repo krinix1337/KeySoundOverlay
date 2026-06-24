@@ -6,8 +6,8 @@ import urllib.request
 import json
 from PySide6.QtCore import QThread, Signal
 
-CURRENT_VERSION = "1.2.0"
-DEFAULT_GITHUB_REPO = "sashk/key-sound-overlay"  # Fallback repository path
+CURRENT_VERSION = "1.3.0"
+DEFAULT_GITHUB_REPO = "krinix1337/KeySoundOverlay"  # Fallback repository path
 
 def get_github_repo():
     """Parses local .git/config to determine the repository owner and name dynamically."""

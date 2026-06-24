@@ -2,7 +2,7 @@
 import ctypes
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QGraphicsOpacityEffect
 from PySide6.QtCore import Qt, QPoint, QTimer, QPropertyAnimation
-from PySide6.QtGui import QColor, QPainter, QFont, QPen, QBrush
+from PySide6.QtGui import QColor, QPainter, QFont, QPen, QBrush, QRadialGradient
 from app.themes import get_overlay_key_qss
 
 # Windows API Constants
@@ -43,9 +43,51 @@ class KeyCap(QLabel):
         self.setAlignment(Qt.AlignCenter)
         self.setWordWrap(False)
         self.is_pressed = False
+        # Ripple animation state
+        self._ripple_radius = 0
+        self._ripple_max = 0
+        self._ripple_alpha = 0
+        self._ripple_timer = QTimer(self)
+        self._ripple_timer.setInterval(16)  # ~60 fps
+        self._ripple_timer.timeout.connect(self._step_ripple)
+        self._anim_enabled = True  # can be toggled via config
 
-    def update_style(self, theme_name, highlight_color, opacity=1.0):
+    def trigger_ripple(self):
+        """Starts a ripple press animation from center."""
+        if not self._anim_enabled:
+            return
+        self._ripple_radius = 0
+        self._ripple_max = max(self.width(), self.height()) * 1.2
+        self._ripple_alpha = 110
+        self._ripple_timer.start()
+
+    def _step_ripple(self):
+        self._ripple_radius += max(3, int(self._ripple_max * 0.09))
+        self._ripple_alpha = max(0, self._ripple_alpha - 9)
+        if self._ripple_radius >= self._ripple_max or self._ripple_alpha <= 0:
+            self._ripple_timer.stop()
+            self._ripple_radius = 0
+            self._ripple_alpha = 0
+        self.update()
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self._ripple_radius > 0 and self._ripple_alpha > 0:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            cx, cy = self.width() // 2, self.height() // 2
+            r = int(self._ripple_radius)
+            gradient = QRadialGradient(cx, cy, r)
+            gradient.setColorAt(0, QColor(255, 255, 255, self._ripple_alpha))
+            gradient.setColorAt(0.7, QColor(255, 255, 255, self._ripple_alpha // 3))
+            gradient.setColorAt(1, QColor(255, 255, 255, 0))
+            painter.setBrush(gradient)
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(cx - r, cy - r, r * 2, r * 2)
+
+    def update_style(self, theme_name, highlight_color, opacity=1.0, anim_enabled=True):
         """Updates styling based on current state and theme."""
+        self._anim_enabled = anim_enabled
         style = get_overlay_key_qss(theme_name, highlight_color, self.is_pressed, opacity)
         self.setStyleSheet(style)
 
@@ -256,7 +298,7 @@ class OverlayWindow(QWidget):
         # Play Sound on Key Down
         if is_pressed and self.config.get("sound_enabled"):
             self.sound_player.play_click()
-            
+
         # Update keycaps for Full and WASD layout
         if key_name in self.key_widgets:
             widget = self.key_widgets[key_name]
@@ -265,8 +307,12 @@ class OverlayWindow(QWidget):
                 theme = self.config.get("theme")
                 accent = self.config.get("key_highlight_color")
                 opacity = self.config.get("overlay_opacity")
-                widget.update_style(theme, accent, opacity)
-            
+                anim = self.config.get("key_press_animation")
+                widget.update_style(theme, accent, opacity, anim)
+                # Trigger ripple on press
+                if is_pressed and anim and hasattr(widget, 'trigger_ripple'):
+                    widget.trigger_ripple()
+
         # Update dynamically for History/Pressed mode
         if is_pressed and self.config.get("overlay_mode") == "pressed":
             comb_str = self.get_current_combination_string(key_name)
@@ -673,9 +719,11 @@ class OverlayWindow(QWidget):
             self.key_widgets["__hint__"] = hint
 
     def check_fullscreen_and_topmost(self):
-        """Detects if the foreground window is in exclusive fullscreen and maintains topmost state."""
+        """Detects if the foreground window is in fullscreen and maintains topmost state."""
         if not self.config.get("overlay_enabled"):
             return
+
+        show_in_fs = self.config.get("show_in_fullscreen")
 
         try:
             user32 = ctypes.windll.user32
@@ -683,12 +731,10 @@ class OverlayWindow(QWidget):
             if not hwnd_foreground:
                 return
 
-            # Skip checking if foreground is our own window
             hwnd_self = int(self.winId())
             if hwnd_foreground == hwnd_self:
                 return
-                
-            # Skip if settings window is active
+
             length = user32.GetWindowTextLengthW(hwnd_foreground)
             buf = ctypes.create_unicode_buffer(length + 1)
             user32.GetWindowTextW(hwnd_foreground, buf, length + 1)
@@ -696,37 +742,44 @@ class OverlayWindow(QWidget):
             if "KeySound Overlay" in title:
                 return
 
-            # Check dimensions of foreground window
             class RECT(ctypes.Structure):
-                _fields_ = [("left", ctypes.c_int), ("top", ctypes.c_int), 
+                _fields_ = [("left", ctypes.c_int), ("top", ctypes.c_int),
                             ("right", ctypes.c_int), ("bottom", ctypes.c_int)]
             rect = RECT()
             user32.GetWindowRect(hwnd_foreground, ctypes.byref(rect))
             fw_width = rect.right - rect.left
             fw_height = rect.bottom - rect.top
 
-            # Get primary screen resolution
             from PySide6.QtWidgets import QApplication
             screen = QApplication.primaryScreen()
+            is_fullscreen = False
             if screen:
                 geom = screen.geometry()
                 sw, sh = geom.width(), geom.height()
-                
-                # If active window is fullscreen and not wallpaper/explorer
-                if fw_width >= sw and fw_height >= sh:
+                is_fullscreen = (fw_width >= sw and fw_height >= sh)
+
+            if is_fullscreen:
+                if show_in_fs:
+                    # Stay visible — aggressively re-assert topmost
+                    user32.SetWindowPos(hwnd_self, -1, 0, 0, 0, 0, 0x0013)
+                    if getattr(self, "hide_due_to_fullscreen", False):
+                        self.hide_due_to_fullscreen = False
+                        super().show()
+                else:
+                    # Hide during fullscreen (legacy behaviour)
                     if self.isVisible():
                         self.hide_due_to_fullscreen = True
                         super().hide()
-                    return
+                return
 
-            # If not fullscreen, restore visibility if we hid it
+            # Not fullscreen — restore if we hid it
             if getattr(self, "hide_due_to_fullscreen", False):
                 self.hide_due_to_fullscreen = False
                 super().show()
 
-            # Maintain topmost state by resetting window flag if necessary
+            # Keep topmost
             if self.isVisible() and not self.config.get("overlay_unlocked"):
-                user32.SetWindowPos(hwnd_self, -1, 0, 0, 0, 0, 0x0013) # SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE
+                user32.SetWindowPos(hwnd_self, -1, 0, 0, 0, 0, 0x0013)
         except Exception as e:
             print(f"Error in fullscreen/topmost check: {e}")
 
@@ -1042,7 +1095,9 @@ class MouseOverlayWindow(QWidget):
     def check_fullscreen_and_topmost(self):
         if not self.config.get("mouse_overlay_enabled"):
             return
-            
+
+        show_in_fs = self.config.get("show_in_fullscreen")
+
         try:
             user32 = ctypes.windll.user32
             hwnd_foreground = user32.GetForegroundWindow()
@@ -1053,7 +1108,6 @@ class MouseOverlayWindow(QWidget):
             if hwnd_foreground == hwnd_self:
                 return
 
-            # Check if settings window or other keysound windows are active
             length = user32.GetWindowTextLengthW(hwnd_foreground)
             buf = ctypes.create_unicode_buffer(length + 1)
             user32.GetWindowTextW(hwnd_foreground, buf, length + 1)
@@ -1061,9 +1115,8 @@ class MouseOverlayWindow(QWidget):
             if "KeySound Overlay" in title:
                 return
 
-            # Exclusive fullscreen check
             class RECT(ctypes.Structure):
-                _fields_ = [("left", ctypes.c_int), ("top", ctypes.c_int), 
+                _fields_ = [("left", ctypes.c_int), ("top", ctypes.c_int),
                             ("right", ctypes.c_int), ("bottom", ctypes.c_int)]
             rect = RECT()
             user32.GetWindowRect(hwnd_foreground, ctypes.byref(rect))
@@ -1072,20 +1125,28 @@ class MouseOverlayWindow(QWidget):
 
             from PySide6.QtWidgets import QApplication
             screen = QApplication.primaryScreen()
+            is_fullscreen = False
             if screen:
                 geom = screen.geometry()
                 sw, sh = geom.width(), geom.height()
-                if fw_width >= sw and fw_height >= sh:
+                is_fullscreen = (fw_width >= sw and fw_height >= sh)
+
+            if is_fullscreen:
+                if show_in_fs:
+                    user32.SetWindowPos(hwnd_self, -1, 0, 0, 0, 0, 0x0013)
+                    if getattr(self, "hide_due_to_fullscreen", False):
+                        self.hide_due_to_fullscreen = False
+                        super().show()
+                else:
                     if self.isVisible():
                         self.hide_due_to_fullscreen = True
                         super().hide()
-                    return
+                return
 
             if getattr(self, "hide_due_to_fullscreen", False):
                 self.hide_due_to_fullscreen = False
                 super().show()
 
-            # Keep topmost
             if self.isVisible() and not self.config.get("mouse_overlay_unlocked"):
                 user32.SetWindowPos(hwnd_self, -1, 0, 0, 0, 0, 0x0013)
         except Exception as e:
