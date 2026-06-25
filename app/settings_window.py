@@ -83,7 +83,7 @@ class SectionLabel(QLabel):
     def __init__(self, text, parent=None):
         super().__init__(text, parent)
         self.setStyleSheet(
-            "font-size: 15px; font-weight: bold; color: #FFFFFF;"
+            "font-size: 15px; font-weight: bold;"
             "margin-bottom: 4px; margin-top: 10px;"
         )
 
@@ -93,7 +93,7 @@ class DescLabel(QLabel):
     def __init__(self, text, parent=None):
         super().__init__(text, parent)
         self.setWordWrap(True)
-        self.setStyleSheet("font-size: 11px; color: #888888; margin-bottom: 4px;")
+        self.setStyleSheet("font-size: 11px; margin-bottom: 4px;")
 
 
 class CardFrame(QFrame):
@@ -103,8 +103,6 @@ class CardFrame(QFrame):
         self.setFrameShape(QFrame.NoFrame)
         self.setStyleSheet("""
             QFrame {
-                background-color: rgba(255,255,255,0.04);
-                border: 1px solid rgba(255,255,255,0.08);
                 border-radius: 10px;
                 padding: 4px;
             }
@@ -403,12 +401,7 @@ class SettingsWindow(QDialog):
         self.setStyleSheet(get_theme_qss(theme_name))
         # Re-apply sidebar/bottom bar overrides (theme resets them)
         for child in self.findChildren(QWidget, "Sidebar"):
-            child.setStyleSheet("""
-                QWidget#Sidebar {
-                    background-color: #161616;
-                    border-right: 1px solid rgba(255,255,255,0.08);
-                }
-            """)
+            pass # Sidebar styles should be applied by the theme now
 
     # ── Pages ─────────────────────────────────────────────────────────────────
 
@@ -438,7 +431,7 @@ class SettingsWindow(QDialog):
         lay.addWidget(SectionLabel("Звук клавиш"))
 
         # Enable toggle
-        self.chk_sound_enabled = QCheckBox("Включить воспроизведение звуков")
+        self.chk_sound_enabled = SettingToggle("Включить воспроизведение звуков")
         lay.addWidget(self.chk_sound_enabled)
 
         # Preset selection card
@@ -520,8 +513,8 @@ class SettingsWindow(QDialog):
         vol_row, self.slider_volume, self.lbl_volume_val = slider_row("Громкость:", 0, 100, "%")
         c2l.addLayout(vol_row)
 
-        self.chk_pitch_rand = QCheckBox("Живой звук (случайный pitch и громкость)")
-        self.chk_repeat_hold = QCheckBox("Повторять звук при удержании клавиши")
+        self.chk_pitch_rand = SettingToggle("Живой звук (случайный pitch и громкость)")
+        self.chk_repeat_hold = SettingToggle("Повторять звук при удержании клавиши")
         c2l.addWidget(self.chk_pitch_rand)
         c2l.addWidget(self.chk_repeat_hold)
         lay.addWidget(card2)
@@ -538,8 +531,8 @@ class SettingsWindow(QDialog):
         kb_l.setContentsMargins(12, 12, 12, 12)
         kb_l.setSpacing(8)
 
-        self.chk_overlay_enabled = QCheckBox("Показывать оверлей клавиатуры")
-        self.chk_overlay_unlocked = QCheckBox("Разблокировать перетаскивание")
+        self.chk_overlay_enabled = SettingToggle("Показывать оверлей клавиатуры")
+        self.chk_overlay_unlocked = SettingToggle("Разблокировать перетаскивание")
         kb_l.addWidget(self.chk_overlay_enabled)
         kb_l.addWidget(self.chk_overlay_unlocked)
 
@@ -589,7 +582,7 @@ class SettingsWindow(QDialog):
         self.combo_anim.addItem("Затухание (Fade)", "fade")
         self.combo_anim.addItem("Прыжок (Bounce)", "bounce")
         self.combo_anim.addItem("Без анимации", "none")
-        self.chk_show_fullscreen = QCheckBox("Показывать оверлей поверх полноэкранных приложений")
+        self.chk_show_fullscreen = SettingToggle("Показывать оверлей поверх полноэкранных приложений")
         fx_l.addWidget(QLabel("Анимация нажатия:"))
         fx_l.addWidget(self.combo_anim)
         fx_l.addWidget(self.chk_show_fullscreen)
@@ -602,10 +595,10 @@ class SettingsWindow(QDialog):
         ml.setContentsMargins(12, 12, 12, 12)
         ml.setSpacing(8)
 
-        self.chk_mouse_enabled = QCheckBox("Показывать оверлей мыши")
-        self.chk_mouse_show_coords = QCheckBox("Показывать координаты мыши")
-        self.chk_mouse_show_clicks = QCheckBox("Подсвечивать клики кнопок")
-        self.chk_mouse_unlocked = QCheckBox("Разблокировать перемещение оверлея мыши")
+        self.chk_mouse_enabled = SettingToggle("Показывать оверлей мыши")
+        self.chk_mouse_show_coords = SettingToggle("Показывать координаты мыши")
+        self.chk_mouse_show_clicks = SettingToggle("Подсвечивать клики кнопок")
+        self.chk_mouse_unlocked = SettingToggle("Разблокировать перемещение оверлея мыши")
         ml.addWidget(self.chk_mouse_enabled)
         ml.addWidget(self.chk_mouse_show_coords)
         ml.addWidget(self.chk_mouse_show_clicks)
@@ -702,9 +695,9 @@ class SettingsWindow(QDialog):
         sl = QVBoxLayout(card_sys)
         sl.setContentsMargins(12, 12, 12, 12)
         sl.setSpacing(8)
-        self.chk_autostart = QCheckBox("Запускать вместе с Windows")
-        self.chk_minimize_tray = QCheckBox("Сворачивать в трей при закрытии")
-        self.chk_start_minimized = QCheckBox("Запускать скрытым (только в трее)")
+        self.chk_autostart = SettingToggle("Запускать вместе с Windows")
+        self.chk_minimize_tray = SettingToggle("Сворачивать в трей при закрытии")
+        self.chk_start_minimized = SettingToggle("Запускать скрытым (только в трее)")
         sl.addWidget(self.chk_autostart)
         sl.addWidget(self.chk_minimize_tray)
         sl.addWidget(self.chk_start_minimized)
@@ -716,7 +709,7 @@ class SettingsWindow(QDialog):
         ul.setContentsMargins(12, 12, 12, 12)
         ul.setSpacing(8)
         self.lbl_app_version = QLabel(f"Текущая версия: {CURRENT_VERSION}")
-        self.chk_check_startup = QCheckBox("Проверять обновления при запуске")
+        self.chk_check_startup = SettingToggle("Проверять обновления при запуске")
         ul.addWidget(self.lbl_app_version)
         ul.addWidget(self.chk_check_startup)
 

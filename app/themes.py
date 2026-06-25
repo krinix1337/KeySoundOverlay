@@ -5,6 +5,11 @@ import re
 
 THEME_SETTINGS_STYLE = {
     "dark": """
+        CardFrame { background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+        QWidget#Sidebar { background-color: #161616; border-right: 1px solid rgba(255,255,255,0.08); }
+        SectionLabel { color: #FFFFFF; }
+        DescLabel { color: #888888; }
+
         QMainWindow, QDialog {
             background-color: #1F1F1F;
             color: #FFFFFF;
@@ -139,6 +144,11 @@ THEME_SETTINGS_STYLE = {
     """,
     
     "light": """
+        CardFrame { background-color: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.08); }
+        QWidget#Sidebar { background-color: #F8F8F8; border-right: 1px solid rgba(0,0,0,0.08); }
+        SectionLabel { color: #1C1C1C; }
+        DescLabel { color: #666666; }
+
         QMainWindow, QDialog {
             background-color: #F3F3F3;
             color: #1C1C1C;
@@ -272,6 +282,11 @@ THEME_SETTINGS_STYLE = {
     """,
     
     "glass": """
+        CardFrame { background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        QWidget#Sidebar { background-color: #111111; border-right: 1px solid rgba(255,255,255,0.1); }
+        SectionLabel { color: #FFFFFF; }
+        DescLabel { color: #AAAAAA; }
+
         QMainWindow, QDialog {
             background-color: #1C1C1C;
             color: #FFFFFF;
@@ -397,6 +412,11 @@ THEME_SETTINGS_STYLE = {
     """,
     
     "neon": """
+        CardFrame { background-color: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2); }
+        QWidget#Sidebar { background-color: #0A0A10; border-right: 1px solid rgba(0,240,255,0.3); }
+        SectionLabel { color: #00F0FF; }
+        DescLabel { color: #00A0A0; }
+
         QMainWindow, QDialog {
             background-color: #050811;
             color: #E0F7FC;

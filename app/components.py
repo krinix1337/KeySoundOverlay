@@ -35,7 +35,7 @@ class ToggleSwitch(QCheckBox):
         if self.isChecked():
             p.setBrush(QColor("#0078D7")) # Accent color
         else:
-            p.setBrush(QColor("#333333")) # Off background
+            p.setBrush(QColor(128, 128, 128, 100)) # Universal Off background
         p.drawRoundedRect(rect, 12, 12)
         
         p.setBrush(Qt.white)
