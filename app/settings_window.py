@@ -3,15 +3,15 @@ import os
 import json
 import re
 from app.components import SettingToggle
-from PySide6.QtWidgets import ( QGraphicsOpacityEffect,
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget,
     QCheckBox, QLabel, QSlider, QPushButton, QComboBox,
     QFileDialog, QGroupBox, QLineEdit, QMessageBox, QColorDialog,
     QScrollArea, QFrame, QInputDialog, QListWidget, QListWidgetItem,
     QSizePolicy, QSpacerItem
 )
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, Signal, QSize
-from PySide6.QtGui import QColor, QFont, QIcon, QPixmap, QPainter
+from PySide6.QtCore import Qt, Signal, QSize
+from PySide6.QtGui import QColor, QFont, QIcon
 
 from app.themes import get_theme_qss, load_custom_themes, CUSTOM_THEMES
 from app.utils import get_app_icon
@@ -1034,3 +1034,4 @@ class SettingsWindow(QDialog):
 
     def reject(self):
         self.hide()
+        super().reject()

@@ -8,6 +8,10 @@ from app.snap_guides import SnapGuideOverlay
 
 # Windows API Constants
 GWL_EXSTYLE = -20
+
+class RECT(ctypes.Structure):
+    _fields_ = [("left", ctypes.c_int), ("top", ctypes.c_int),
+                ("right", ctypes.c_int), ("bottom", ctypes.c_int)]
 WS_EX_TRANSPARENT = 0x00000020
 WS_EX_LAYERED = 0x00080000
 
@@ -140,6 +144,11 @@ class OverlayWindow(QWidget):
         self.pressed_key_items = [] # History track of labels for 'pressed' mode
         self.currently_pressed_keys = set()
         self.snap_guides = None
+        
+        # Fullscreen detection timer
+        self.fullscreen_timer = QTimer(self)
+        self.fullscreen_timer.timeout.connect(self.check_fullscreen_and_topmost)
+        self.fullscreen_timer.start(1000)
         
         # Window attributes setup
         self.setWindowFlags(
@@ -790,9 +799,6 @@ class OverlayWindow(QWidget):
             if "KeySound Overlay" in title:
                 return
 
-            class RECT(ctypes.Structure):
-                _fields_ = [("left", ctypes.c_int), ("top", ctypes.c_int),
-                            ("right", ctypes.c_int), ("bottom", ctypes.c_int)]
             rect = RECT()
             user32.GetWindowRect(hwnd_foreground, ctypes.byref(rect))
             fw_width = rect.right - rect.left
@@ -857,25 +863,18 @@ class OverlayWindow(QWidget):
         if self.config.get("overlay_unlocked") and event.buttons() == Qt.LeftButton:
             new_pos = event.globalPosition().toPoint() - self.drag_position
             
-            # Snapping logic
-            screen = self.screen().geometry()
-            snap_dist = 25
+            # Build overlay rect at proposed position
+            from PySide6.QtCore import QRect
+            overlay_rect = QRect(new_pos.x(), new_pos.y(), self.width(), self.height())
             
-            # Center of the overlay
-            center_x = new_pos.x() + self.width() // 2
-            center_y = new_pos.y() + self.height() // 2
-            
-            # Screen centers
-            sc_x = screen.center().x()
-            sc_y = screen.center().y()
-            
-            # Magnetize to center X
-            if abs(center_x - sc_x) < snap_dist:
-                new_pos.setX(sc_x - self.width() // 2)
-            
-            # Magnetize to center Y
-            if abs(center_y - sc_y) < snap_dist:
-                new_pos.setY(sc_y - self.height() // 2)
+            # Get snapped position from snap guides
+            if self.snap_guides:
+                sx, sy = self.snap_guides.get_snapped_position(overlay_rect)
+                new_pos.setX(sx)
+                new_pos.setY(sy)
+                # Update visual state
+                snapped_rect = QRect(sx, sy, self.width(), self.height())
+                self.snap_guides.update_snap_state(snapped_rect)
                 
             self.move(new_pos)
             event.accept()
@@ -888,7 +887,6 @@ class OverlayWindow(QWidget):
                 self.snap_guides.hide()
                 self.snap_guides.deleteLater()
                 self.snap_guides = None
-            event.accept()
             event.accept()
 
 
@@ -1206,9 +1204,6 @@ class MouseOverlayWindow(QWidget):
             if "KeySound Overlay" in title:
                 return
 
-            class RECT(ctypes.Structure):
-                _fields_ = [("left", ctypes.c_int), ("top", ctypes.c_int),
-                            ("right", ctypes.c_int), ("bottom", ctypes.c_int)]
             rect = RECT()
             user32.GetWindowRect(hwnd_foreground, ctypes.byref(rect))
             fw_width = rect.right - rect.left
@@ -1247,26 +1242,24 @@ class MouseOverlayWindow(QWidget):
     def mousePressEvent(self, event):
         if self.config.get("mouse_overlay_unlocked") and event.button() == Qt.LeftButton:
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            if not hasattr(self, '_snap_guides') or self._snap_guides is None:
+                self._snap_guides = SnapGuideOverlay()
+            self._snap_guides.show()
             event.accept()
 
     def mouseMoveEvent(self, event):
         if self.config.get("mouse_overlay_unlocked") and event.buttons() == Qt.LeftButton:
             new_pos = event.globalPosition().toPoint() - self.drag_position
             
-            # Snapping logic
-            screen = self.screen().geometry()
-            snap_dist = 25
+            from PySide6.QtCore import QRect
+            overlay_rect = QRect(new_pos.x(), new_pos.y(), self.width(), self.height())
             
-            center_x = new_pos.x() + self.width() // 2
-            center_y = new_pos.y() + self.height() // 2
-            
-            sc_x = screen.center().x()
-            sc_y = screen.center().y()
-            
-            if abs(center_x - sc_x) < snap_dist:
-                new_pos.setX(sc_x - self.width() // 2)
-            if abs(center_y - sc_y) < snap_dist:
-                new_pos.setY(sc_y - self.height() // 2)
+            if hasattr(self, '_snap_guides') and self._snap_guides:
+                sx, sy = self._snap_guides.get_snapped_position(overlay_rect)
+                new_pos.setX(sx)
+                new_pos.setY(sy)
+                snapped_rect = QRect(sx, sy, self.width(), self.height())
+                self._snap_guides.update_snap_state(snapped_rect)
                 
             self.move(new_pos)
             event.accept()
@@ -1276,6 +1269,10 @@ class MouseOverlayWindow(QWidget):
             pos = self.pos()
             self.config.set("mouse_overlay_x", pos.x())
             self.config.set("mouse_overlay_y", pos.y())
+            if hasattr(self, '_snap_guides') and self._snap_guides:
+                self._snap_guides.hide()
+                self._snap_guides.deleteLater()
+                self._snap_guides = None
             event.accept()
 
     def set_mouse_position(self, x, y):

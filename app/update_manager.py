@@ -11,6 +11,8 @@ DEFAULT_GITHUB_REPO = "krinix1337/KeySoundOverlay"  # Fallback repository path
 
 def get_github_repo():
     """Parses local .git/config to determine the repository owner and name dynamically."""
+    if getattr(sys, 'frozen', False):
+        return DEFAULT_GITHUB_REPO
     try:
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         git_config_path = os.path.join(base_dir, ".git", "config")
@@ -31,7 +33,8 @@ def parse_version(v_str):
     """Normalizes and parses a version string (e.g. 'v1.2.3-beta' -> [1, 2, 3])."""
     clean = re.sub(r'[^\d\.]', '', v_str)
     try:
-        return [int(x) for x in clean.split('.') if x]
+        parts = [int(x) for x in clean.split('.') if x]
+        return parts[:3]  # Only major.minor.patch
     except Exception:
         return [0, 0, 0]
 

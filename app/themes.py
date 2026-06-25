@@ -10,7 +10,7 @@ THEME_SETTINGS_STYLE = {
             color: #FFFFFF;
         }
         QWidget {
-            font-family: "Segoe UI", "Segoe UI Variable Text", sans-serif;
+            font-family: "Segoe UI", sans-serif;
             font-size: 13px;
             color: #FFFFFF;
         }
@@ -23,7 +23,7 @@ THEME_SETTINGS_STYLE = {
         SidebarButton {
             background-color: #2D2D2D;
             border: 1px solid #3D3D3D;
-            border-bottom-color: none;
+            border-bottom-color: transparent;
             border-top-left-radius: 6px;
             border-top-right-radius: 6px;
             padding: 8px 16px;
@@ -121,7 +121,7 @@ THEME_SETTINGS_STYLE = {
         QCheckBox::indicator:checked {
             background-color: #0078D4;
             border-color: #0078D4;
-            image: url(check.png); /* Native fallback when no image */
+             /* Native fallback when no image */
         }
         QLabel {
             color: #E2E2E2;
@@ -144,7 +144,7 @@ THEME_SETTINGS_STYLE = {
             color: #1C1C1C;
         }
         QWidget {
-            font-family: "Segoe UI", "Segoe UI Variable Text", sans-serif;
+            font-family: "Segoe UI", sans-serif;
             font-size: 13px;
             color: #1C1C1C;
         }
@@ -157,7 +157,7 @@ THEME_SETTINGS_STYLE = {
         SidebarButton {
             background-color: #E5E5E5;
             border: 1px solid #D0D0D0;
-            border-bottom-color: none;
+            border-bottom-color: transparent;
             border-top-left-radius: 6px;
             border-top-right-radius: 6px;
             padding: 8px 16px;
@@ -273,11 +273,11 @@ THEME_SETTINGS_STYLE = {
     
     "glass": """
         QMainWindow, QDialog {
-            background-color: rgba(28, 28, 28, 210);
+            background-color: #1C1C1C;
             color: #FFFFFF;
         }
         QWidget {
-            font-family: "Segoe UI", "Segoe UI Variable Text", sans-serif;
+            font-family: "Segoe UI", sans-serif;
             font-size: 13px;
             color: #FFFFFF;
         }
@@ -290,7 +290,7 @@ THEME_SETTINGS_STYLE = {
         SidebarButton {
             background-color: rgba(45, 45, 45, 100);
             border: 1px solid rgba(255, 255, 255, 30);
-            border-bottom-color: none;
+            border-bottom-color: transparent;
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
             padding: 8px 16px;
@@ -402,7 +402,7 @@ THEME_SETTINGS_STYLE = {
             color: #E0F7FC;
         }
         QWidget {
-            font-family: "Segoe UI", "Segoe UI Variable Text", sans-serif;
+            font-family: "Segoe UI", sans-serif;
             font-size: 13px;
             color: #E0F7FC;
         }
@@ -415,7 +415,7 @@ THEME_SETTINGS_STYLE = {
         SidebarButton {
             background-color: #091122;
             border: 1px solid #004455;
-            border-bottom-color: none;
+            border-bottom-color: transparent;
             border-top-left-radius: 6px;
             border-top-right-radius: 6px;
             padding: 8px 16px;
@@ -760,7 +760,7 @@ CUSTOM_SETTINGS_TEMPLATE = """
         color: {text};
     }}
     QWidget {{
-        font-family: "Segoe UI", "Segoe UI Variable Text", sans-serif;
+        font-family: "Segoe UI", sans-serif;
         font-size: 13px;
         color: {text};
     }}
@@ -773,7 +773,7 @@ CUSTOM_SETTINGS_TEMPLATE = """
     SidebarButton {{
         background-color: {card_bg};
         border: 1px solid {border};
-        border-bottom-color: none;
+        border-bottom-color: transparent;
         border-top-left-radius: 6px;
         border-top-right-radius: 6px;
         padding: 8px 16px;
