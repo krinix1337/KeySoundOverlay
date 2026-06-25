@@ -59,4 +59,9 @@ class SettingToggle(QWidget):
         
     def setChecked(self, v):
         self.switch.setChecked(v)
+        
+    def mousePressEvent(self, event):
+        self.switch.setChecked(not self.switch.isChecked())
+        super().mousePressEvent(event)
+
         self.switch.thumb_x = 20 if v else 2

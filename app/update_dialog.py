@@ -39,7 +39,7 @@ class UpdateDialog(QDialog):
         
         # Versions info
         self.lbl_version = QLabel()
-        self.lbl_version.setStyleSheet("font-size: 13px; color: #888888;")
+        self.lbl_version.setStyleSheet("font-size: 13px; opacity: 0.7;")
         self.layout.addWidget(self.lbl_version)
         
         # Changelog browser

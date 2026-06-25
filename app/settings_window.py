@@ -278,7 +278,7 @@ class SettingsWindow(QDialog):
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowContextHelpButtonHint
-            | Qt.WindowCloseButtonHint
+            | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint
         )
 
         # Root layout: sidebar | content
@@ -532,7 +532,7 @@ class SettingsWindow(QDialog):
         kb_l.setSpacing(8)
 
         self.chk_overlay_enabled = SettingToggle("Показывать оверлей клавиатуры")
-        self.chk_overlay_unlocked = SettingToggle("Разблокировать перетаскивание")
+        self.chk_overlay_unlocked = SettingToggle("Разблокировать перетаскивание оверлеев")
         kb_l.addWidget(self.chk_overlay_enabled)
         kb_l.addWidget(self.chk_overlay_unlocked)
 
@@ -598,12 +598,9 @@ class SettingsWindow(QDialog):
         self.chk_mouse_enabled = SettingToggle("Показывать оверлей мыши")
         self.chk_mouse_show_coords = SettingToggle("Показывать координаты мыши")
         self.chk_mouse_show_clicks = SettingToggle("Подсвечивать клики кнопок")
-        self.chk_mouse_unlocked = SettingToggle("Разблокировать перемещение оверлея мыши")
         ml.addWidget(self.chk_mouse_enabled)
         ml.addWidget(self.chk_mouse_show_coords)
         ml.addWidget(self.chk_mouse_show_clicks)
-        ml.addWidget(self.chk_mouse_unlocked)
-
         mop_row, self.slider_mouse_opacity, self.lbl_mouse_opacity_val = slider_row(
             "Прозрачность мыши:", 0, 100, "%"
         )
@@ -801,7 +798,6 @@ class SettingsWindow(QDialog):
         self.chk_mouse_enabled.setChecked(c.get("mouse_overlay_enabled"))
         self.chk_mouse_show_coords.setChecked(c.get("mouse_overlay_show_coords"))
         self.chk_mouse_show_clicks.setChecked(c.get("mouse_overlay_show_clicks"))
-        self.chk_mouse_unlocked.setChecked(c.get("mouse_overlay_unlocked"))
         m_op = c.get("mouse_overlay_opacity")
         self.slider_mouse_opacity.setValue(int(m_op * 100))
         self.lbl_mouse_opacity_val.setText(f"{int(m_op * 100)}%")
@@ -852,7 +848,6 @@ class SettingsWindow(QDialog):
         c.set("mouse_overlay_enabled", self.chk_mouse_enabled.isChecked())
         c.set("mouse_overlay_show_coords", self.chk_mouse_show_coords.isChecked())
         c.set("mouse_overlay_show_clicks", self.chk_mouse_show_clicks.isChecked())
-        c.set("mouse_overlay_unlocked", self.chk_mouse_unlocked.isChecked())
         c.set("mouse_overlay_opacity", self.slider_mouse_opacity.value() / 100.0)
 
         # Appearance

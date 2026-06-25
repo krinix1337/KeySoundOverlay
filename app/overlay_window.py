@@ -106,6 +106,13 @@ class KeyCap(QLabel):
             
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Clip to rounded rect to prevent animations spilling out
+        path = QPainterPath()
+        # Extract radius roughly from theme or default to 5
+        path.addRoundedRect(self.rect(), 5, 5)
+        painter.setClipPath(path)
+
         if self._anim_type == 'ripple':
             cx, cy = self.width() // 2, self.height() // 2
             r = int(getattr(self, '_anim_val1', 0))
@@ -1115,7 +1122,7 @@ class MouseOverlayWindow(QWidget):
 
     def update_click_through_state(self):
         """Toggles window interaction click-through based on settings."""
-        unlocked = self.config.get("mouse_overlay_unlocked")
+        unlocked = self.config.get("overlay_unlocked")
         hwnd = int(self.winId())
         set_click_through(hwnd, not unlocked)
         
@@ -1233,14 +1240,14 @@ class MouseOverlayWindow(QWidget):
                 self.hide_due_to_fullscreen = False
                 super().show()
 
-            if self.isVisible() and not self.config.get("mouse_overlay_unlocked"):
+            if self.isVisible() and not self.config.get("overlay_unlocked"):
                 user32.SetWindowPos(hwnd_self, -1, 0, 0, 0, 0, 0x0013)
         except Exception as e:
             print(f"Error in mouse fullscreen topmost check: {e}")
 
     # Drag & Drop functionality
     def mousePressEvent(self, event):
-        if self.config.get("mouse_overlay_unlocked") and event.button() == Qt.LeftButton:
+        if self.config.get("overlay_unlocked") and event.button() == Qt.LeftButton:
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             if not hasattr(self, '_snap_guides') or self._snap_guides is None:
                 self._snap_guides = SnapGuideOverlay()
@@ -1248,7 +1255,7 @@ class MouseOverlayWindow(QWidget):
             event.accept()
 
     def mouseMoveEvent(self, event):
-        if self.config.get("mouse_overlay_unlocked") and event.buttons() == Qt.LeftButton:
+        if self.config.get("overlay_unlocked") and event.buttons() == Qt.LeftButton:
             new_pos = event.globalPosition().toPoint() - self.drag_position
             
             from PySide6.QtCore import QRect
@@ -1265,7 +1272,7 @@ class MouseOverlayWindow(QWidget):
             event.accept()
 
     def mouseReleaseEvent(self, event):
-        if self.config.get("mouse_overlay_unlocked"):
+        if self.config.get("overlay_unlocked"):
             pos = self.pos()
             self.config.set("mouse_overlay_x", pos.x())
             self.config.set("mouse_overlay_y", pos.y())

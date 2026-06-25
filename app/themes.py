@@ -14,10 +14,11 @@ THEME_SETTINGS_STYLE = {
             background-color: #1F1F1F;
             color: #FFFFFF;
         }
-        QWidget {
+        QWidget, QTextBrowser, QMessageBox {
             font-family: "Segoe UI", sans-serif;
             font-size: 13px;
             color: #FFFFFF;
+            background-color: #1F1F1F;
         }
         QTabWidget::pane {
             border: 1px solid #2D2D2D;
@@ -153,10 +154,11 @@ THEME_SETTINGS_STYLE = {
             background-color: #F3F3F3;
             color: #1C1C1C;
         }
-        QWidget {
+        QWidget, QTextBrowser, QMessageBox {
             font-family: "Segoe UI", sans-serif;
             font-size: 13px;
             color: #1C1C1C;
+            background-color: #F3F3F3;
         }
         QTabWidget::pane {
             border: 1px solid #E5E5E5;
@@ -291,10 +293,11 @@ THEME_SETTINGS_STYLE = {
             background-color: #1C1C1C;
             color: #FFFFFF;
         }
-        QWidget {
+        QWidget, QTextBrowser, QMessageBox {
             font-family: "Segoe UI", sans-serif;
             font-size: 13px;
             color: #FFFFFF;
+            background-color: #1F1F1F;
         }
         QTabWidget::pane {
             border: 1px solid rgba(255, 255, 255, 40);
