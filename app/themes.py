@@ -5,20 +5,64 @@ import re
 
 THEME_SETTINGS_STYLE = {
     "dark": """
-        CardFrame { background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+        CardFrame { background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 4px; }
         QWidget#Sidebar { background-color: #161616; border-right: 1px solid rgba(255,255,255,0.08); }
-        SectionLabel { color: #FFFFFF; }
-        DescLabel { color: #888888; }
+        SectionLabel { color: #FFFFFF; font-size: 15px; font-weight: bold; margin-bottom: 4px; margin-top: 10px; }
+        DescLabel { color: #888888; font-size: 11px; margin-bottom: 4px; }
 
-        QMainWindow, QDialog {
+        
+        QTextBrowser, QMessageBox { color: #FFFFFF; }
+        #MainContainer, #MainContainer QWidget { color: #FFFFFF; }
+        QDialog#SettingsWindow, QDialog#UpdateDialog, QDialog#ThemeCreatorDialog {
             background-color: #1F1F1F;
-            color: #FFFFFF;
         }
-        QWidget, QTextBrowser, QMessageBox {
+        #MainContainer {
             font-family: "Segoe UI", sans-serif;
             font-size: 13px;
             color: #FFFFFF;
             background-color: #1F1F1F;
+            border-radius: 12px;
+        }
+        QLabel#LogoLabel {
+            font-size: 15px;
+            font-weight: bold;
+            color: #0078D4;
+            padding: 4px 8px 16px 8px;
+        }
+        QLabel#VersionLabel {
+            color: #555555;
+            font-size: 11px;
+        }
+        QLabel#DialogTitle {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        QLabel#DialogMeta, QLabel#StatusLabel {
+            font-size: 13px;
+            color: #888888;
+        }
+        QLabel#DialogSectionTitle {
+            font-weight: bold;
+        }
+        QWidget#BottomBar {
+            background-color: #1A1A1A;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        QTextBrowser#ChangelogBrowser {
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            background-color: #1A1A1A;
+        }
+        QProgressBar#DialogProgress {
+            border: 1px solid #3D3D3D;
+            border-radius: 6px;
+            background-color: #1A1A1A;
+            text-align: center;
+            color: #FFFFFF;
+        }
+        QProgressBar#DialogProgress::chunk {
+            background-color: #0078D4;
+            border-radius: 5px;
         }
         QTabWidget::pane {
             border: 1px solid #2D2D2D;
@@ -26,7 +70,7 @@ THEME_SETTINGS_STYLE = {
             border-radius: 8px;
             top: -1px;
         }
-        SidebarButton {
+        SidebarButton, QPushButton[navButton="true"] {
             background-color: #2D2D2D;
             border: 1px solid #3D3D3D;
             border-bottom-color: transparent;
@@ -36,11 +80,11 @@ THEME_SETTINGS_STYLE = {
             margin-right: 4px;
             color: #AAAAAA;
         }
-        SidebarButton:hover {
+        SidebarButton:hover, QPushButton[navButton="true"]:hover {
             background-color: #353535;
             color: #FFFFFF;
         }
-        SidebarButton:checked {
+        SidebarButton:checked, QPushButton[navButton="true"]:checked {
             background-color: #1F1F1F;
             border-color: #2D2D2D;
             color: #FFFFFF;
@@ -73,6 +117,28 @@ THEME_SETTINGS_STYLE = {
         }
         QPushButton:pressed {
             background-color: #252525;
+        }
+        QPushButton[role="primary"] {
+            background-color: #0078D4;
+            border-color: #0078D4;
+            color: #FFFFFF;
+            font-weight: bold;
+            padding: 7px 18px;
+            border-radius: 6px;
+        }
+        QPushButton[role="primary"]:hover {
+            background-color: #1883D7;
+            border-color: #1883D7;
+        }
+        QPushButton[role="success"] {
+            background-color: #10B981;
+            border-color: #10B981;
+            color: #FFFFFF;
+            font-weight: bold;
+        }
+        QPushButton[role="success"]:hover {
+            background-color: #22C55E;
+            border-color: #22C55E;
         }
         QPushButton:disabled {
             background-color: #1A1A1A;
@@ -142,23 +208,76 @@ THEME_SETTINGS_STYLE = {
         QLineEdit:focus {
             border: 1px solid #0078D4;
         }
+        QListWidget#ProfileList {
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background-color: rgba(255,255,255,0.02);
+        }
+        QListWidget#ProfileList::item:selected {
+            background: rgba(0,120,212,0.35);
+            border-radius: 4px;
+        }
     """,
     
     "light": """
-        CardFrame { background-color: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.08); }
+        CardFrame { background-color: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 4px; }
         QWidget#Sidebar { background-color: #F8F8F8; border-right: 1px solid rgba(0,0,0,0.08); }
-        SectionLabel { color: #1C1C1C; }
-        DescLabel { color: #666666; }
+        SectionLabel { color: #1C1C1C; font-size: 15px; font-weight: bold; margin-bottom: 4px; margin-top: 10px; }
+        DescLabel { color: #666666; font-size: 11px; margin-bottom: 4px; }
 
-        QMainWindow, QDialog {
+        
+        QTextBrowser, QMessageBox { color: #1C1C1C; }
+        #MainContainer, #MainContainer QWidget { color: #1C1C1C; }
+        QDialog#SettingsWindow, QDialog#UpdateDialog, QDialog#ThemeCreatorDialog {
             background-color: #F3F3F3;
-            color: #1C1C1C;
         }
-        QWidget, QTextBrowser, QMessageBox {
+        #MainContainer {
             font-family: "Segoe UI", sans-serif;
             font-size: 13px;
             color: #1C1C1C;
             background-color: #F3F3F3;
+            border-radius: 12px;
+        }
+        QLabel#LogoLabel {
+            font-size: 15px;
+            font-weight: bold;
+            color: #0078D4;
+            padding: 4px 8px 16px 8px;
+        }
+        QLabel#VersionLabel {
+            color: #777777;
+            font-size: 11px;
+        }
+        QLabel#DialogTitle {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        QLabel#DialogMeta, QLabel#StatusLabel {
+            font-size: 13px;
+            color: #666666;
+        }
+        QLabel#DialogSectionTitle {
+            font-weight: bold;
+        }
+        QWidget#BottomBar {
+            background-color: #ECECEC;
+            border-top: 1px solid rgba(0,0,0,0.08);
+        }
+        QTextBrowser#ChangelogBrowser {
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 6px;
+            background-color: #FFFFFF;
+        }
+        QProgressBar#DialogProgress {
+            border: 1px solid #D0D0D0;
+            border-radius: 6px;
+            background-color: #FFFFFF;
+            text-align: center;
+            color: #1C1C1C;
+        }
+        QProgressBar#DialogProgress::chunk {
+            background-color: #0078D4;
+            border-radius: 5px;
         }
         QTabWidget::pane {
             border: 1px solid #E5E5E5;
@@ -166,7 +285,7 @@ THEME_SETTINGS_STYLE = {
             border-radius: 8px;
             top: -1px;
         }
-        SidebarButton {
+        SidebarButton, QPushButton[navButton="true"] {
             background-color: #E5E5E5;
             border: 1px solid #D0D0D0;
             border-bottom-color: transparent;
@@ -176,11 +295,11 @@ THEME_SETTINGS_STYLE = {
             margin-right: 4px;
             color: #555555;
         }
-        SidebarButton:hover {
+        SidebarButton:hover, QPushButton[navButton="true"]:hover {
             background-color: #ECECEC;
             color: #1C1C1C;
         }
-        SidebarButton:checked {
+        SidebarButton:checked, QPushButton[navButton="true"]:checked {
             background-color: #FFFFFF;
             border-color: #E5E5E5;
             color: #1C1C1C;
@@ -213,6 +332,28 @@ THEME_SETTINGS_STYLE = {
         }
         QPushButton:pressed {
             background-color: #ECECEC;
+        }
+        QPushButton[role="primary"] {
+            background-color: #0078D4;
+            border-color: #0078D4;
+            color: #FFFFFF;
+            font-weight: bold;
+            padding: 7px 18px;
+            border-radius: 6px;
+        }
+        QPushButton[role="primary"]:hover {
+            background-color: #1883D7;
+            border-color: #1883D7;
+        }
+        QPushButton[role="success"] {
+            background-color: #10B981;
+            border-color: #10B981;
+            color: #FFFFFF;
+            font-weight: bold;
+        }
+        QPushButton[role="success"]:hover {
+            background-color: #22C55E;
+            border-color: #22C55E;
         }
         QPushButton:disabled {
             background-color: #E0E0E0;
@@ -281,23 +422,76 @@ THEME_SETTINGS_STYLE = {
         QLineEdit:focus {
             border: 1px solid #0078D4;
         }
+        QListWidget#ProfileList {
+            border-radius: 6px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background-color: #FFFFFF;
+        }
+        QListWidget#ProfileList::item:selected {
+            background: rgba(0,120,212,0.18);
+            border-radius: 4px;
+        }
     """,
     
     "glass": """
-        CardFrame { background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        CardFrame { background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 4px; }
         QWidget#Sidebar { background-color: #111111; border-right: 1px solid rgba(255,255,255,0.1); }
-        SectionLabel { color: #FFFFFF; }
-        DescLabel { color: #AAAAAA; }
+        SectionLabel { color: #FFFFFF; font-size: 15px; font-weight: bold; margin-bottom: 4px; margin-top: 10px; }
+        DescLabel { color: #AAAAAA; font-size: 11px; margin-bottom: 4px; }
 
-        QMainWindow, QDialog {
-            background-color: #1C1C1C;
-            color: #FFFFFF;
+        
+        QTextBrowser, QMessageBox { color: #FFFFFF; }
+        #MainContainer, #MainContainer QWidget { color: #FFFFFF; }
+        QDialog#SettingsWindow, QDialog#UpdateDialog, QDialog#ThemeCreatorDialog {
+            background-color: #1F1F1F;
         }
-        QWidget, QTextBrowser, QMessageBox {
+        #MainContainer {
             font-family: "Segoe UI", sans-serif;
             font-size: 13px;
             color: #FFFFFF;
             background-color: #1F1F1F;
+            border-radius: 12px;
+        }
+        QLabel#LogoLabel {
+            font-size: 15px;
+            font-weight: bold;
+            color: #8FD8FF;
+            padding: 4px 8px 16px 8px;
+        }
+        QLabel#VersionLabel {
+            color: #8A8A8A;
+            font-size: 11px;
+        }
+        QLabel#DialogTitle {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        QLabel#DialogMeta, QLabel#StatusLabel {
+            font-size: 13px;
+            color: #AAAAAA;
+        }
+        QLabel#DialogSectionTitle {
+            font-weight: bold;
+        }
+        QWidget#BottomBar {
+            background-color: rgba(17, 17, 17, 180);
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        QTextBrowser#ChangelogBrowser {
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            background-color: rgba(255,255,255,0.04);
+        }
+        QProgressBar#DialogProgress {
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 6px;
+            background-color: rgba(255,255,255,0.06);
+            text-align: center;
+            color: #FFFFFF;
+        }
+        QProgressBar#DialogProgress::chunk {
+            background-color: #0078D4;
+            border-radius: 5px;
         }
         QTabWidget::pane {
             border: 1px solid rgba(255, 255, 255, 40);
@@ -305,7 +499,7 @@ THEME_SETTINGS_STYLE = {
             border-radius: 10px;
             top: -1px;
         }
-        SidebarButton {
+        SidebarButton, QPushButton[navButton="true"] {
             background-color: rgba(45, 45, 45, 100);
             border: 1px solid rgba(255, 255, 255, 30);
             border-bottom-color: transparent;
@@ -315,11 +509,11 @@ THEME_SETTINGS_STYLE = {
             margin-right: 4px;
             color: #DDDDDD;
         }
-        SidebarButton:hover {
+        SidebarButton:hover, QPushButton[navButton="true"]:hover {
             background-color: rgba(255, 255, 255, 40);
             color: #FFFFFF;
         }
-        SidebarButton:checked {
+        SidebarButton:checked, QPushButton[navButton="true"]:checked {
             background-color: rgba(45, 45, 45, 180);
             border-color: rgba(255, 255, 255, 50);
             color: #FFFFFF;
@@ -353,6 +547,28 @@ THEME_SETTINGS_STYLE = {
         }
         QPushButton:pressed {
             background-color: rgba(255, 255, 255, 10);
+        }
+        QPushButton[role="primary"] {
+            background-color: #0078D4;
+            border-color: #0078D4;
+            color: #FFFFFF;
+            font-weight: bold;
+            padding: 7px 18px;
+            border-radius: 6px;
+        }
+        QPushButton[role="primary"]:hover {
+            background-color: #1883D7;
+            border-color: #1883D7;
+        }
+        QPushButton[role="success"] {
+            background-color: #10B981;
+            border-color: #10B981;
+            color: #FFFFFF;
+            font-weight: bold;
+        }
+        QPushButton[role="success"]:hover {
+            background-color: #22C55E;
+            border-color: #22C55E;
         }
         QPushButton:disabled {
             background-color: rgba(255, 255, 255, 5);
@@ -412,22 +628,72 @@ THEME_SETTINGS_STYLE = {
         QLineEdit:focus {
             border: 1px solid #0078D4;
         }
+        QListWidget#ProfileList {
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background-color: rgba(255,255,255,0.04);
+        }
+        QListWidget#ProfileList::item:selected {
+            background: rgba(0,120,212,0.28);
+            border-radius: 4px;
+        }
     """,
     
     "neon": """
-        CardFrame { background-color: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2); }
+        CardFrame { background-color: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2); border-radius: 10px; padding: 4px; }
         QWidget#Sidebar { background-color: #0A0A10; border-right: 1px solid rgba(0,240,255,0.3); }
-        SectionLabel { color: #00F0FF; }
-        DescLabel { color: #00A0A0; }
+        SectionLabel { color: #00F0FF; font-size: 15px; font-weight: bold; margin-bottom: 4px; margin-top: 10px; }
+        DescLabel { color: #00A0A0; font-size: 11px; margin-bottom: 4px; }
 
-        QMainWindow, QDialog {
-            background-color: #050811;
-            color: #E0F7FC;
-        }
-        QWidget {
+        
+        #MainContainer, #MainContainer QWidget {
             font-family: "Segoe UI", sans-serif;
             font-size: 13px;
             color: #E0F7FC;
+        }
+        QDialog#SettingsWindow, QDialog#UpdateDialog, QDialog#ThemeCreatorDialog {
+            background-color: #091122;
+        }
+        QLabel#LogoLabel {
+            font-size: 15px;
+            font-weight: bold;
+            color: #00F0FF;
+            padding: 4px 8px 16px 8px;
+        }
+        QLabel#VersionLabel {
+            color: #3B8BA0;
+            font-size: 11px;
+        }
+        QLabel#DialogTitle {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        QLabel#DialogMeta, QLabel#StatusLabel {
+            font-size: 13px;
+            color: #00AAFF;
+        }
+        QLabel#DialogSectionTitle {
+            font-weight: bold;
+        }
+        QWidget#BottomBar {
+            background-color: #08101C;
+            border-top: 1px solid rgba(0,240,255,0.2);
+        }
+        QTextBrowser#ChangelogBrowser {
+            border: 1px solid rgba(0,240,255,0.25);
+            border-radius: 6px;
+            background-color: #08101C;
+        }
+        QProgressBar#DialogProgress {
+            border: 1px solid #004455;
+            border-radius: 6px;
+            background-color: #08101C;
+            text-align: center;
+            color: #00F0FF;
+        }
+        QProgressBar#DialogProgress::chunk {
+            background-color: #00AEEF;
+            border-radius: 5px;
         }
         QTabWidget::pane {
             border: 1px solid #00F0FF;
@@ -435,7 +701,7 @@ THEME_SETTINGS_STYLE = {
             border-radius: 8px;
             top: -1px;
         }
-        SidebarButton {
+        SidebarButton, QPushButton[navButton="true"] {
             background-color: #091122;
             border: 1px solid #004455;
             border-bottom-color: transparent;
@@ -445,11 +711,11 @@ THEME_SETTINGS_STYLE = {
             margin-right: 4px;
             color: #00AAFF;
         }
-        SidebarButton:hover {
+        SidebarButton:hover, QPushButton[navButton="true"]:hover {
             background-color: #112244;
             color: #00F0FF;
         }
-        SidebarButton:checked {
+        SidebarButton:checked, QPushButton[navButton="true"]:checked {
             background-color: #091122;
             border-color: #00F0FF;
             color: #00F0FF;
@@ -483,6 +749,28 @@ THEME_SETTINGS_STYLE = {
         }
         QPushButton:pressed {
             background-color: #070D18;
+        }
+        QPushButton[role="primary"] {
+            background-color: #00AEEF;
+            border-color: #00F0FF;
+            color: #041018;
+            font-weight: bold;
+            padding: 7px 18px;
+            border-radius: 6px;
+        }
+        QPushButton[role="primary"]:hover {
+            background-color: #33D7FF;
+            border-color: #33D7FF;
+        }
+        QPushButton[role="success"] {
+            background-color: #0FBF9F;
+            border-color: #00F0FF;
+            color: #041018;
+            font-weight: bold;
+        }
+        QPushButton[role="success"]:hover {
+            background-color: #24D9B7;
+            border-color: #24D9B7;
         }
         QPushButton:disabled {
             background-color: #03060C;
@@ -541,6 +829,15 @@ THEME_SETTINGS_STYLE = {
         }
         QLineEdit:focus {
             border: 1px solid #00F0FF;
+        }
+        QListWidget#ProfileList {
+            border-radius: 6px;
+            border: 1px solid rgba(0,240,255,0.2);
+            background-color: #08101C;
+        }
+        QListWidget#ProfileList::item:selected {
+            background: rgba(0,240,255,0.2);
+            border-radius: 4px;
         }
     """
 }
@@ -744,6 +1041,75 @@ def adjust_brightness(hex_color, amount):
     except Exception:
         return hex_color
 
+def _hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip('#')
+    if len(hex_color) == 3:
+        hex_color = ''.join(c * 2 for c in hex_color)
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+def get_contrast_text(hex_color):
+    """Returns black or white depending on the perceived brightness of a hex color."""
+    try:
+        r, g, b = _hex_to_rgb(hex_color)
+        luminance = (0.299 * r) + (0.587 * g) + (0.114 * b)
+        return "#041018" if luminance >= 160 else "#FFFFFF"
+    except Exception:
+        return "#FFFFFF"
+
+def get_settings_theme_palette(theme_name):
+    """Returns theme colors used by runtime-painted UI assets such as icons."""
+    theme_lower = theme_name.lower()
+    if theme_lower == "dark":
+        return {
+            "text": "#FFFFFF",
+            "muted": "#AAAAAA",
+            "accent": "#0078D4",
+            "on_accent": "#FFFFFF",
+            "success": "#10B981",
+            "on_success": "#FFFFFF",
+        }
+    if theme_lower == "light":
+        return {
+            "text": "#1C1C1C",
+            "muted": "#555555",
+            "accent": "#0078D4",
+            "on_accent": "#FFFFFF",
+            "success": "#10B981",
+            "on_success": "#FFFFFF",
+        }
+    if theme_lower == "glass":
+        return {
+            "text": "#FFFFFF",
+            "muted": "#DDDDDD",
+            "accent": "#0078D4",
+            "on_accent": "#FFFFFF",
+            "success": "#10B981",
+            "on_success": "#FFFFFF",
+        }
+    if theme_lower == "neon":
+        return {
+            "text": "#00F0FF",
+            "muted": "#00AAFF",
+            "accent": "#00AEEF",
+            "on_accent": "#041018",
+            "success": "#0FBF9F",
+            "on_success": "#041018",
+        }
+    if theme_lower in CUSTOM_THEMES:
+        theme_data = CUSTOM_THEMES[theme_lower].get("settings_window", {})
+        text = theme_data.get("text", "#FFFFFF")
+        accent = theme_data.get("accent", "#0078D4")
+        success = "#10B981"
+        return {
+            "text": text,
+            "muted": adjust_brightness(text, -0.3),
+            "accent": accent,
+            "on_accent": get_contrast_text(accent),
+            "success": success,
+            "on_success": get_contrast_text(success),
+        }
+    return get_settings_theme_palette("dark")
+
 def parse_to_rgba(color_str, opacity_multiplier=1.0):
     """Converts hex, rgb, or rgba string to rgba(...) with opacity multiplier applied."""
     try:
@@ -778,14 +1144,78 @@ def parse_to_rgba(color_str, opacity_multiplier=1.0):
 
 # CUSTOM THEME STYLESHEET TEMPLATE
 CUSTOM_SETTINGS_TEMPLATE = """
-    QMainWindow, QDialog {{
+    QDialog#SettingsWindow, QDialog#UpdateDialog, QDialog#ThemeCreatorDialog {{
         background-color: {background};
-        color: {text};
     }}
-    QWidget {{
+    #MainContainer, #MainContainer QWidget {{
         font-family: "Segoe UI", sans-serif;
         font-size: 13px;
         color: {text};
+    }}
+    #MainContainer {{
+        border-radius: 12px;
+    }}
+    QLabel#LogoLabel {{
+        font-size: 15px;
+        font-weight: bold;
+        color: {accent};
+        padding: 4px 8px 16px 8px;
+    }}
+    QLabel#VersionLabel {{
+        color: {text_dimmed};
+        font-size: 11px;
+    }}
+    QLabel#DialogTitle {{
+        font-size: 16px;
+        font-weight: bold;
+    }}
+    QLabel#DialogMeta, QLabel#StatusLabel {{
+        font-size: 13px;
+        color: {text_dimmed};
+    }}
+    QLabel#DialogSectionTitle {{
+        font-weight: bold;
+    }}
+    QWidget#BottomBar {{
+        background-color: {card_bg};
+        border-top: 1px solid {border};
+    }}
+    QTextBrowser, QMessageBox {{
+        color: {text};
+    }}
+    QTextBrowser#ChangelogBrowser {{
+        border: 1px solid {border};
+        border-radius: 6px;
+        background-color: {card_bg};
+    }}
+    QProgressBar#DialogProgress {{
+        border: 1px solid {border};
+        border-radius: 6px;
+        background-color: {card_bg};
+        text-align: center;
+        color: {text};
+    }}
+    QProgressBar#DialogProgress::chunk {{
+        background-color: {accent};
+        border-radius: 5px;
+    }}
+    CardFrame {{
+        background-color: {card_bg};
+        border: 1px solid {border};
+        border-radius: 10px;
+        padding: 4px;
+    }}
+    SectionLabel {{
+        color: {text};
+        font-size: 15px;
+        font-weight: bold;
+        margin-bottom: 4px;
+        margin-top: 10px;
+    }}
+    DescLabel {{
+        color: {text_dimmed};
+        font-size: 11px;
+        margin-bottom: 4px;
     }}
     QTabWidget::pane {{
         border: 1px solid {border};
@@ -793,7 +1223,7 @@ CUSTOM_SETTINGS_TEMPLATE = """
         border-radius: 8px;
         top: -1px;
     }}
-    SidebarButton {{
+    SidebarButton, QPushButton[navButton="true"] {{
         background-color: {card_bg};
         border: 1px solid {border};
         border-bottom-color: transparent;
@@ -803,11 +1233,11 @@ CUSTOM_SETTINGS_TEMPLATE = """
         margin-right: 4px;
         color: {text_dimmed};
     }}
-    SidebarButton:hover {{
+    SidebarButton:hover, QPushButton[navButton="true"]:hover {{
         background-color: {card_bg_hover};
         color: {text};
     }}
-    SidebarButton:checked {{
+    SidebarButton:checked, QPushButton[navButton="true"]:checked {{
         background-color: {background};
         border-color: {border};
         color: {text};
@@ -840,6 +1270,28 @@ CUSTOM_SETTINGS_TEMPLATE = """
     }}
     QPushButton:pressed {{
         background-color: {card_bg_pressed};
+    }}
+    QPushButton[role="primary"] {{
+        background-color: {accent};
+        border-color: {accent};
+        color: #FFFFFF;
+        font-weight: bold;
+        padding: 7px 18px;
+        border-radius: 6px;
+    }}
+    QPushButton[role="primary"]:hover {{
+        background-color: {accent_hover};
+        border-color: {accent_hover};
+    }}
+    QPushButton[role="success"] {{
+        background-color: #10B981;
+        border-color: #10B981;
+        color: #FFFFFF;
+        font-weight: bold;
+    }}
+    QPushButton[role="success"]:hover {{
+        background-color: #22C55E;
+        border-color: #22C55E;
     }}
     QPushButton:disabled {{
         background-color: {background};
@@ -888,6 +1340,15 @@ CUSTOM_SETTINGS_TEMPLATE = """
     }}
     QLineEdit:focus {{
         border: 1px solid {accent};
+    }}
+    QListWidget#ProfileList {{
+        border-radius: 6px;
+        border: 1px solid {border};
+        background-color: {card_bg};
+    }}
+    QListWidget#ProfileList::item:selected {{
+        background: rgba(0,120,212,0.35);
+        border-radius: 4px;
     }}
     QCheckBox::indicator {{
         width: 16px;

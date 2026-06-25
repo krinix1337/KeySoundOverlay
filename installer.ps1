@@ -49,7 +49,7 @@ $ShortcutStart.Save()
 $UninstallScriptPath = "$TargetDir\uninstall.ps1"
 $UninstallScriptContent = @"
 `$AppName = "KeySoundOverlay"
-`$TargetDir = "`$env:LOCALAPPDATA\Programs\`$AppName"
+`$TargetDir = "$TargetDir"
 
 `$DesktopDir = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
 `$ShortcutPath = Join-Path `$DesktopDir "KeySound Overlay.lnk"
@@ -98,7 +98,7 @@ if (-not (Test-Path $RegUninstallPath)) {
     New-Item -Path $RegUninstallPath -Force | Out-Null
 }
 Set-ItemProperty -Path $RegUninstallPath -Name "DisplayName" -Value "KeySound Overlay"
-Set-ItemProperty -Path $RegUninstallPath -Name "DisplayVersion" -Value "1.0.0"
+Set-ItemProperty -Path $RegUninstallPath -Name "DisplayVersion" -Value "1.6.0"
 Set-ItemProperty -Path $RegUninstallPath -Name "Publisher" -Value "KeySound Dev"
 Set-ItemProperty -Path $RegUninstallPath -Name "UninstallString" -Value "`"$UninstallCmdPath`""
 Set-ItemProperty -Path $RegUninstallPath -Name "DisplayIcon" -Value "$TargetDir\KeySoundOverlay.exe"

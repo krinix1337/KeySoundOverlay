@@ -49,6 +49,8 @@ class SettingToggle(QWidget):
         l.setContentsMargins(4, 4, 4, 4)
         self.lbl = QLabel(text)
         self.lbl.setStyleSheet("font-size: 14px;")
+        self.setCursor(Qt.PointingHandCursor)
+        self.lbl.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.switch = ToggleSwitch()
         l.addWidget(self.lbl)
         l.addStretch()

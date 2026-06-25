@@ -5,7 +5,7 @@ import tempfile
 import subprocess
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QTextBrowser, 
-    QPushButton, QProgressBar, QMessageBox
+    QPushButton, QProgressBar, QMessageBox, QFrame
 )
 from PySide6.QtCore import Qt, QTimer
 from app.update_manager import UpdateCheckerWorker, FileDownloaderWorker, CURRENT_VERSION
@@ -20,46 +20,58 @@ class UpdateDialog(QDialog):
         self.latest_version = ""
         self.downloader = None
         self.temp_installer_path = ""
+        self.setObjectName("UpdateDialog")
         
         self.setWindowTitle("Доступно обновление!")
         self.setWindowIcon(get_app_icon())
         self.resize(450, 350)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint | Qt.WindowCloseButtonHint)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint | Qt.WindowSystemMenuHint)
         self.setStyleSheet(get_theme_qss(self.config.get("theme")))
         
         # Main Layout
-        self.layout = QVBoxLayout(self)
+        self.main_container = QFrame(self)
+        self.main_container.setObjectName("MainContainer")
+        self.main_container.setAttribute(Qt.WA_StyledBackground, True)
+        root_wrapper = QVBoxLayout(self)
+        root_wrapper.setContentsMargins(0, 0, 0, 0)
+        root_wrapper.addWidget(self.main_container)
+
+        self.layout = QVBoxLayout(self.main_container)
         self.layout.setSpacing(12)
         self.layout.setContentsMargins(20, 20, 20, 20)
         
         # Header Label
         self.lbl_title = QLabel("Доступна новая версия приложения!")
-        self.lbl_title.setStyleSheet("font-size: 16px; font-weight: bold;")
+        self.lbl_title.setObjectName("DialogTitle")
         self.layout.addWidget(self.lbl_title)
         
         # Versions info
         self.lbl_version = QLabel()
-        self.lbl_version.setStyleSheet("font-size: 13px; opacity: 0.7;")
+        self.lbl_version.setObjectName("DialogMeta")
         self.layout.addWidget(self.lbl_version)
         
         # Changelog browser
         self.lbl_changelog_title = QLabel("Список изменений:")
-        self.lbl_changelog_title.setStyleSheet("font-weight: bold;")
+        self.lbl_changelog_title.setObjectName("DialogSectionTitle")
         self.layout.addWidget(self.lbl_changelog_title)
         
         self.txt_changelog = QTextBrowser()
+        self.txt_changelog.setObjectName("ChangelogBrowser")
         self.txt_changelog.setOpenExternalLinks(True)
-        self.txt_changelog.setStyleSheet("border: 1px solid rgba(255,255,255,20); border-radius: 6px;")
         self.layout.addWidget(self.txt_changelog)
         
         # Progress Bar (Hidden by default)
         self.progress_bar = QProgressBar()
+        self.progress_bar.setObjectName("DialogProgress")
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(False)
         self.layout.addWidget(self.progress_bar)
         
         self.lbl_status = QLabel("Скачивание...")
+        self.lbl_status.setObjectName("StatusLabel")
         self.lbl_status.setVisible(False)
         self.layout.addWidget(self.lbl_status)
         
@@ -69,6 +81,7 @@ class UpdateDialog(QDialog):
         self.btn_later.clicked.connect(self.reject)
         
         self.btn_update = QPushButton("Обновить сейчас")
+        self.btn_update.setProperty("role", "primary")
         self.btn_update.clicked.connect(self.start_download)
         self.btn_update.setDefault(True)
         

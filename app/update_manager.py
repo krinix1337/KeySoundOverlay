@@ -6,7 +6,7 @@ import urllib.request
 import json
 from PySide6.QtCore import QThread, Signal
 
-CURRENT_VERSION = "1.5.2"
+CURRENT_VERSION = "1.6.0"
 DEFAULT_GITHUB_REPO = "krinix1337/KeySoundOverlay"  # Fallback repository path
 
 def get_github_repo():

@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QColor, QFont, QIcon
 
-from app.themes import get_theme_qss, load_custom_themes, CUSTOM_THEMES
+from app.themes import get_theme_qss, get_settings_theme_palette, load_custom_themes, CUSTOM_THEMES
 from app.utils import get_app_icon
 from app.icons import get_icon
 from app.autostart import set_autostart, is_autostart_enabled
@@ -30,14 +30,19 @@ class ColorSelectorButton(QPushButton):
     def __init__(self, initial_color, parent=None):
         super().__init__(parent)
         self.color = QColor(initial_color)
+        self.border_color = "#555555"
         self.setFixedWidth(80)
         self.update_style()
         self.clicked.connect(self.choose_color)
 
+    def set_border_color(self, color):
+        self.border_color = color
+        self.update_style()
+
     def update_style(self):
         self.setStyleSheet(
             f"background-color: {self.color.name()};"
-            f"border: 2px solid #555555; border-radius: 4px; min-height: 20px;"
+            f"border: 2px solid {self.border_color}; border-radius: 4px; min-height: 20px;"
         )
 
     def choose_color(self):
@@ -51,41 +56,19 @@ class SidebarButton(QPushButton):
     """Navigation button for the sidebar."""
     def __init__(self, icon_name, text, parent=None):
         super().__init__(parent)
+        self.icon_name = icon_name
+        self.setProperty("navButton", True)
         self.setText(f" {text}")
         self.setIcon(get_icon(icon_name, color="#AAAAAA", size=24))
         self.setIconSize(QSize(20, 20))
         self.setCheckable(True)
         self.setFixedHeight(44)
-        self.setStyleSheet("""
-            QPushButton {
-                text-align: left;
-                padding-left: 12px;
-                font-size: 13px;
-                border: none;
-                border-radius: 8px;
-                background: transparent;
-                color: #AAAAAA;
-            }
-            QPushButton:hover {
-                background: rgba(255,255,255,0.06);
-                color: #FFFFFF;
-            }
-            QPushButton:checked {
-                background: rgba(0,120,212,0.25);
-                color: #FFFFFF;
-                font-weight: bold;
-            }
-        """)
 
 
 class SectionLabel(QLabel):
     """Bold section header label inside a page."""
     def __init__(self, text, parent=None):
         super().__init__(text, parent)
-        self.setStyleSheet(
-            "font-size: 15px; font-weight: bold;"
-            "margin-bottom: 4px; margin-top: 10px;"
-        )
 
 
 class DescLabel(QLabel):
@@ -93,7 +76,6 @@ class DescLabel(QLabel):
     def __init__(self, text, parent=None):
         super().__init__(text, parent)
         self.setWordWrap(True)
-        self.setStyleSheet("font-size: 11px; margin-bottom: 4px;")
 
 
 class CardFrame(QFrame):
@@ -101,12 +83,7 @@ class CardFrame(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.NoFrame)
-        self.setStyleSheet("""
-            QFrame {
-                border-radius: 10px;
-                padding: 4px;
-            }
-        """)
+        self.setAttribute(Qt.WA_StyledBackground, True)
 
 
 def slider_row(label_text, min_val, max_val, unit="", parent=None):
@@ -131,18 +108,30 @@ def slider_row(label_text, min_val, max_val, unit="", parent=None):
 # ---------------------------------------------------------------------------
 
 class ThemeCreatorDialog(QDialog):
-    def __init__(self, app_data_dir, theme_qss, parent=None):
+    def __init__(self, app_data_dir, theme_name, parent=None):
         super().__init__(parent)
         self.app_data_dir = app_data_dir
         self.created_theme_id = ""
+        self.theme_name = theme_name
+        self.theme_palette = get_settings_theme_palette(theme_name)
+        self.setObjectName("ThemeCreatorDialog")
         self.setWindowTitle("Конструктор тем")
         self.setWindowIcon(get_app_icon())
         self.resize(420, 540)
-        self.setStyleSheet(theme_qss)
+        self.setStyleSheet(get_theme_qss(theme_name))
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
+
+        self.lbl_title = QLabel("Создание кастомной темы")
+        self.lbl_title.setObjectName("DialogTitle")
+        layout.addWidget(self.lbl_title)
+
+        self.lbl_desc = QLabel("Настройте цвета окна настроек и оверлея, затем сохраните новую тему.")
+        self.lbl_desc.setObjectName("DialogMeta")
+        self.lbl_desc.setWordWrap(True)
+        layout.addWidget(self.lbl_desc)
 
         name_row = QHBoxLayout()
         name_row.addWidget(QLabel("Название темы:"))
@@ -196,16 +185,20 @@ class ThemeCreatorDialog(QDialog):
 
         btns = QHBoxLayout()
         btns.addStretch()
-        btns.addWidget(QPushButton("Отмена", clicked=self.reject))
-        save_btn = QPushButton("💾 Сохранить тему", clicked=self.save_theme)
-        save_btn.setDefault(True)
-        btns.addWidget(save_btn)
+        self.btn_cancel_theme = QPushButton("Отмена", clicked=self.reject)
+        btns.addWidget(self.btn_cancel_theme)
+        self.btn_save_theme = QPushButton("Сохранить тему", clicked=self.save_theme)
+        self.btn_save_theme.setProperty("role", "primary")
+        self.btn_save_theme.setIcon(get_icon("save", color=self.theme_palette["on_accent"]))
+        self.btn_save_theme.setDefault(True)
+        btns.addWidget(self.btn_save_theme)
         layout.addLayout(btns)
 
     def _clr(self, layout, label, init):
         row = QHBoxLayout()
         row.addWidget(QLabel(label))
         btn = ColorSelectorButton(init, self)
+        btn.set_border_color(self.theme_palette["muted"])
         row.addWidget(btn)
         layout.addLayout(row)
         return btn
@@ -275,14 +268,23 @@ class SettingsWindow(QDialog):
         self.setWindowIcon(get_app_icon())
         self.resize(720, 580)
         self.setMinimumSize(640, 500)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setObjectName("SettingsWindow")
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowContextHelpButtonHint
-            | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint
+            | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint | Qt.WindowSystemMenuHint
         )
 
+        self.main_container = QFrame(self)
+        self.main_container.setObjectName("MainContainer")
+        self.main_container.setAttribute(Qt.WA_StyledBackground, True)
+        root_wrapper = QVBoxLayout(self)
+        root_wrapper.setContentsMargins(0, 0, 0, 0)
+        root_wrapper.addWidget(self.main_container)
+
         # Root layout: sidebar | content
-        root = QHBoxLayout(self)
+        root = QHBoxLayout(self.main_container)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
@@ -290,22 +292,13 @@ class SettingsWindow(QDialog):
         sidebar = QWidget()
         sidebar.setFixedWidth(195)
         sidebar.setObjectName("Sidebar")
-        sidebar.setStyleSheet("""
-            QWidget#Sidebar {
-                background-color: #161616;
-                border-right: 1px solid rgba(255,255,255,0.08);
-            }
-        """)
         sb_layout = QVBoxLayout(sidebar)
         sb_layout.setContentsMargins(10, 20, 10, 16)
         sb_layout.setSpacing(4)
 
         # App logo area
         logo_lbl = QLabel("🎹  KeySound")
-        logo_lbl.setStyleSheet(
-            "font-size: 15px; font-weight: bold; color: #0078D4;"
-            "padding: 4px 8px 16px 8px;"
-        )
+        logo_lbl.setObjectName("LogoLabel")
         sb_layout.addWidget(logo_lbl)
 
         nav_items = [
@@ -325,8 +318,8 @@ class SettingsWindow(QDialog):
         sb_layout.addStretch()
 
         ver_lbl = QLabel(f"v{CURRENT_VERSION}")
+        ver_lbl.setObjectName("VersionLabel")
         ver_lbl.setAlignment(Qt.AlignCenter)
-        ver_lbl.setStyleSheet("color: #555555; font-size: 11px;")
         sb_layout.addWidget(ver_lbl)
 
         root.addWidget(sidebar)
@@ -348,27 +341,19 @@ class SettingsWindow(QDialog):
         # Bottom action buttons
         bottom_bar = QWidget()
         bottom_bar.setObjectName("BottomBar")
-        bottom_bar.setStyleSheet("""
-            QWidget#BottomBar {
-                background-color: #1A1A1A;
-                border-top: 1px solid rgba(255,255,255,0.08);
-            }
-        """)
         bb_layout = QHBoxLayout(bottom_bar)
         bb_layout.setContentsMargins(16, 10, 16, 10)
         bb_layout.setSpacing(8)
         bb_layout.addStretch()
 
         self.btn_apply = QPushButton("Применить")
+        self.btn_apply.setProperty("role", "secondary")
         self.btn_apply.clicked.connect(self.apply_settings)
         self.btn_save = QPushButton("Сохранить и закрыть")
+        self.btn_save.setProperty("role", "primary")
         self.btn_save.setIcon(get_icon("check", color="#FFFFFF"))
         self.btn_save.setDefault(True)
         self.btn_save.clicked.connect(self.save_and_close)
-        self.btn_save.setStyleSheet(
-            "background-color: #0078D4; color: white; font-weight: bold;"
-            "padding: 7px 18px; border-radius: 6px;"
-        )
 
         bb_layout.addWidget(self.btn_apply)
         bb_layout.addWidget(self.btn_save)
@@ -395,13 +380,45 @@ class SettingsWindow(QDialog):
             btn.setChecked(i == idx)
         
         self.stack.setCurrentIndex(idx)
+        self._refresh_theme_icons()
 
     def apply_theme_styling(self):
         theme_name = self.config.get("theme")
         self.setStyleSheet(get_theme_qss(theme_name))
-        # Re-apply sidebar/bottom bar overrides (theme resets them)
-        for child in self.findChildren(QWidget, "Sidebar"):
-            pass # Sidebar styles should be applied by the theme now
+        self._refresh_theme_icons()
+
+    def _theme_palette(self):
+        return get_settings_theme_palette(self.config.get("theme"))
+
+    def _set_icon(self, widget, icon_name, color, size=20):
+        widget.setIcon(get_icon(icon_name, color=color, size=size))
+
+    def _refresh_theme_icons(self):
+        palette = self._theme_palette()
+        nav_default = palette["muted"]
+        nav_active = palette["text"]
+        button_icon = palette["text"]
+        primary_icon = palette["on_accent"]
+        success_icon = palette["on_success"]
+
+        for btn in self.nav_buttons:
+            color = nav_active if btn.isChecked() else nav_default
+            self._set_icon(btn, btn.icon_name, color, size=24)
+
+        self._set_icon(self.btn_save, "check", primary_icon)
+        self._set_icon(self.btn_test, "play", button_icon)
+        self._set_icon(self.btn_reset_pos, "resize", button_icon)
+        self._set_icon(self.btn_create_theme, "palette", button_icon)
+        self._set_icon(self.btn_profile_save, "save", button_icon)
+        self._set_icon(self.btn_profile_load, "load", button_icon)
+        self._set_icon(self.btn_profile_delete, "trash", button_icon)
+        self._set_icon(self.btn_check_updates, "search", button_icon)
+        self._set_icon(self.btn_install_update, "update", success_icon)
+        self._set_icon(self.btn_reset_all, "warning", button_icon)
+
+        for row in range(self.lst_profiles.count()):
+            item = self.lst_profiles.item(row)
+            item.setIcon(get_icon("profile", color=nav_default))
 
     # ── Pages ─────────────────────────────────────────────────────────────────
 
@@ -415,11 +432,19 @@ class SettingsWindow(QDialog):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setStyleSheet(
+            "QScrollArea { background: transparent; border: none; }"
+            "QScrollArea > QWidget { background: transparent; }"
+            "QScrollArea > QWidget > QWidget { background: transparent; }"
+        )
+        scroll.viewport().setAutoFillBackground(False)
 
         inner = QWidget()
+        inner.setObjectName("ScrollablePageContent")
         inner_layout = QVBoxLayout(inner)
         inner_layout.setContentsMargins(24, 20, 24, 20)
         inner_layout.setSpacing(14)
+        inner.setStyleSheet("background: transparent;")
 
         scroll.setWidget(inner)
         page_layout.addWidget(scroll)
@@ -571,22 +596,6 @@ class SettingsWindow(QDialog):
         kb_l.addLayout(color_row)
         lay.addWidget(card_kb)
 
-        # Animation & fullscreen
-        lay.addWidget(SectionLabel("Эффекты"))
-        card_fx = CardFrame()
-        fx_l = QVBoxLayout(card_fx)
-        fx_l.setContentsMargins(12, 12, 12, 12)
-        fx_l.setSpacing(8)
-        self.combo_anim = QComboBox()
-        self.combo_anim.addItem("Рябь (Ripple)", "ripple")
-        self.combo_anim.addItem("Затухание (Fade)", "fade")
-        self.combo_anim.addItem("Прыжок (Bounce)", "bounce")
-        self.combo_anim.addItem("Без анимации", "none")
-        self.chk_show_fullscreen = SettingToggle("Показывать оверлей поверх полноэкранных приложений")
-        fx_l.addWidget(QLabel("Анимация нажатия:"))
-        fx_l.addWidget(self.combo_anim)
-        fx_l.addWidget(self.chk_show_fullscreen)
-        lay.addWidget(card_fx)
 
         # Mouse overlay
         lay.addWidget(SectionLabel("Оверлей мыши"))
@@ -607,13 +616,36 @@ class SettingsWindow(QDialog):
         ml.addLayout(mop_row)
         lay.addWidget(card_mouse)
 
-        # Reset positions
+        lay.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
+
+        bottom = QWidget()
+        bottom_lay = QVBoxLayout(bottom)
+        bottom_lay.setContentsMargins(0, 0, 0, 0)
+        bottom_lay.setSpacing(14)
+
+        bottom_lay.addWidget(SectionLabel("Эффекты"))
+        card_fx = CardFrame()
+        fx_l = QVBoxLayout(card_fx)
+        fx_l.setContentsMargins(12, 12, 12, 12)
+        fx_l.setSpacing(8)
+        self.combo_anim = QComboBox()
+        self.combo_anim.addItem("Рябь (Ripple)", "ripple")
+        self.combo_anim.addItem("Затухание (Fade)", "fade")
+        self.combo_anim.addItem("Прыжок (Bounce)", "bounce")
+        self.combo_anim.addItem("Без анимации", "none")
+        self.chk_show_fullscreen = SettingToggle("Показывать оверлей поверх полноэкранных приложений")
+        fx_l.addWidget(QLabel("Анимация нажатия:"))
+        fx_l.addWidget(self.combo_anim)
+        fx_l.addWidget(self.chk_show_fullscreen)
+        bottom_lay.addWidget(card_fx)
+
         self.btn_reset_pos = QPushButton("Сбросить позиции оверлеев")
         self.btn_reset_pos.setIcon(get_icon("resize", color="#FFFFFF"))
         self.btn_reset_pos.clicked.connect(self.reset_overlay_position_triggered.emit)
-        lay.addWidget(self.btn_reset_pos)
+        bottom_lay.addWidget(self.btn_reset_pos)
 
-        lay.addStretch()
+        lay.addWidget(bottom)
+
         return page
 
     def _build_appearance_page(self):
@@ -658,11 +690,8 @@ class SettingsWindow(QDialog):
 
         pl.addWidget(QLabel("Список профилей:"))
         self.lst_profiles = QListWidget()
+        self.lst_profiles.setObjectName("ProfileList")
         self.lst_profiles.setFixedHeight(160)
-        self.lst_profiles.setStyleSheet(
-            "QListWidget { border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }"
-            "QListWidget::item:selected { background: rgba(0,120,212,0.35); border-radius: 4px; }"
-        )
         pl.addWidget(self.lst_profiles)
 
         btns_row = QHBoxLayout()
@@ -715,10 +744,8 @@ class SettingsWindow(QDialog):
         self.btn_check_updates.setIcon(get_icon("search", color="#FFFFFF"))
         self.btn_check_updates.clicked.connect(self.check_for_updates_clicked)
         self.btn_install_update = QPushButton("Установить обновление")
+        self.btn_install_update.setProperty("role", "success")
         self.btn_install_update.setIcon(get_icon("update", color="#FFFFFF"))
-        self.btn_install_update.setStyleSheet(
-            "background-color: #10B981; color: white; font-weight: bold;"
-        )
         self.btn_install_update.setVisible(False)
         self.btn_install_update.clicked.connect(self.run_update_dialog)
         upd_btns.addWidget(self.btn_check_updates)
@@ -886,10 +913,11 @@ class SettingsWindow(QDialog):
 
     def _refresh_profiles_list(self):
         self.lst_profiles.clear()
+        profile_icon_color = self._theme_palette()["muted"]
         for name in self.profile_mgr.list_profiles():
             display = self.profile_mgr.get_display_name(name)
             item = QListWidgetItem(f" {display}")
-            item.setIcon(get_icon("profile", color="#AAAAAA"))
+            item.setIcon(get_icon("profile", color=profile_icon_color))
             item.setData(Qt.UserRole, name)
             self.lst_profiles.addItem(item)
 
@@ -1010,7 +1038,7 @@ class SettingsWindow(QDialog):
 
     def open_theme_creator(self):
         dlg = ThemeCreatorDialog(
-            self.config.app_data_dir, get_theme_qss(self.config.get("theme")), self
+            self.config.app_data_dir, self.config.get("theme"), self
         )
         if dlg.exec():
             self.custom_themes_list = load_custom_themes(self.config.app_data_dir)

@@ -129,7 +129,7 @@ class InstallWorker(QThread):
         startmenu_dir = [SystemEnvironment_GetFolderPath(2)]
 
         un_ps_content = f"""$AppName = "{app_name}"
-$TargetDir = "$env:LOCALAPPDATA\\Programs\\$AppName"
+$TargetDir = "{self.target_dir}"
 $ShortcutPath = Join-Path "{desktop_dir[0]}" "KeySound Overlay.lnk"
 $StartMenuPath = Join-Path "{startmenu_dir[0]}" "KeySound Overlay.lnk"
 
@@ -164,7 +164,7 @@ Write-Host "Uninstall complete!" -ForegroundColor Green
             # Register in Windows Apps and Features Settings registry
             key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, f"{reg_path}\\{app_name}", 0, winreg.KEY_SET_VALUE)
             winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, "KeySound Overlay")
-            winreg.SetValueEx(key, "DisplayVersion", 0, winreg.REG_SZ, "1.2.0")
+            winreg.SetValueEx(key, "DisplayVersion", 0, winreg.REG_SZ, "1.6.0")
             winreg.SetValueEx(key, "Publisher", 0, winreg.REG_SZ, "KeySound Dev")
             winreg.SetValueEx(key, "UninstallString", 0, winreg.REG_SZ, f'"{uninstall_bat}"')
             winreg.SetValueEx(key, "DisplayIcon", 0, winreg.REG_SZ, dest_exe)

@@ -2,7 +2,7 @@
 import ctypes
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QGraphicsOpacityEffect
 from PySide6.QtCore import Qt, QPoint, QTimer, QPropertyAnimation
-from PySide6.QtGui import QColor, QPainter, QFont, QPen, QBrush, QRadialGradient
+from PySide6.QtGui import QColor, QPainter, QFont, QPen, QBrush, QRadialGradient, QPainterPath
 from app.themes import get_overlay_key_qss
 from app.snap_guides import SnapGuideOverlay
 

@@ -9,7 +9,7 @@ AppSupportURL=https://github.com/
 AppUpdatesURL=https://github.com/
 
 AppName=KeySound Overlay
-AppVersion=1.5.2
+AppVersion=1.6.0
 DefaultDirName={localappdata}\Programs\KeySoundOverlay
 DefaultGroupName=KeySound Overlay
 DisableProgramGroupPage=yes
